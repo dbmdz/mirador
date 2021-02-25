@@ -83,6 +83,7 @@ export class SearchHit extends Component {
       index,
       showDetails,
       selected,
+      style,
       t,
       windowSelected,
     } = this.props;
@@ -109,6 +110,7 @@ export class SearchHit extends Component {
               [classes.windowSelected]: windowSelected,
             },
           )}
+          style={style}
           button={!selected}
           component="li"
           onClick={this.handleClick}
@@ -175,6 +177,7 @@ SearchHit.propTypes = {
   selectAnnotation: PropTypes.func,
   selected: PropTypes.bool,
   showDetails: PropTypes.func,
+  style: PropTypes.object,
   t: PropTypes.func,
   total: PropTypes.number,
   windowId: PropTypes.string.isRequired, // eslint-disable-line react/no-unused-prop-types
@@ -196,6 +199,7 @@ SearchHit.defaultProps = {
   selectAnnotation: () => {},
   selected: false,
   showDetails: () => {},
+  style: undefined,
   t: k => k,
   total: undefined,
   windowSelected: false,
