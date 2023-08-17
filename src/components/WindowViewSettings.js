@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import ListSubheader from '@material-ui/core/ListSubheader';
-import Switch from '@material-ui/core/Switch';
 import SingleIcon from '@material-ui/icons/CropOriginalSharp';
 import ScrollViewIcon from '@material-ui/icons/ViewColumn';
 import PropTypes from 'prop-types';

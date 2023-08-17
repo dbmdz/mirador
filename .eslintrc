@@ -12,8 +12,14 @@
   "rules": {
     "import/prefer-default-export": "off",
     "no-console": "off",
+    "react/default-props-match-prop-types": "warn",
+    "react/destructuring-assignment": "warn",
+    "react/forbid-prop-types": "warn",
     "react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx"] }],
-    "require-jsdoc": ["error", {
+    "react/no-this-in-sfc": "warn",
+    "react/prop-types": "warn",
+    "react/require-default-props": "warn",
+    "require-jsdoc": ["warn", {
       "require": {
         "FunctionDeclaration": true,
         "MethodDefinition": true,
@@ -24,10 +30,7 @@
     }],
     "no-underscore-dangle": "off",
     "react/prefer-stateless-function": "off",
-    "sort-keys": ["error", "asc", {
-      "caseSensitive": false,
-      "natural": false
-    }],
+    "sort-keys": "warn",
     "react/jsx-props-no-spreading": "off",
     "arrow-parens": "off",
     "import/no-anonymous-default-export": "off"

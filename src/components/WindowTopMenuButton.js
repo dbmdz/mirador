@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { Badge } from '@material-ui/core';
 import WindowTopMenu from '../containers/WindowTopMenu';
 import MiradorMenuButton from '../containers/MiradorMenuButton';
 import WindowOptionsIcon from './icons/WindowOptionsIcon';
-import { Badge } from '@material-ui/core';
 
 /**
  */
@@ -43,7 +43,9 @@ export class WindowTopMenuButton extends Component {
    * @return
    */
   render() {
-    const { classes, viewIsModified, t, windowId } = this.props;
+    const {
+      classes, viewIsModified, t, windowId,
+    } = this.props;
     const { anchorEl } = this.state;
 
     return (
@@ -72,8 +74,8 @@ export class WindowTopMenuButton extends Component {
 
 WindowTopMenuButton.propTypes = {
   classes: PropTypes.objectOf(PropTypes.string).isRequired,
-  viewIsModified: PropTypes.bool,
   t: PropTypes.func,
+  viewIsModified: PropTypes.bool,
   windowId: PropTypes.string.isRequired,
 };
 

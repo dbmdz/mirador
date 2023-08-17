@@ -50,7 +50,7 @@ const styles = theme => ({
   shiftToggleIcon: {
     height: '18px',
     width: 'auto',
-  }
+  },
 });
 
 const enhance = compose(
