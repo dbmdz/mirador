@@ -170,7 +170,7 @@ export const getManifestSeeAlso = createSelector(
       {
         format: related.format,
         label: PropertyValue.parse(related.label, locale)
-          .getValue(),
+          .getValue(locale),
         value: related.id || related['@id'],
       }
     )),
@@ -212,7 +212,7 @@ export const getManifestRelated = createSelector(
         : {
           format: related.format,
           label: PropertyValue.parse(related.label, locale)
-            .getValue(),
+            .getValue(locale),
           value: related.id || related['@id'],
         }
     )),
