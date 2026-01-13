@@ -45,7 +45,7 @@ function createI18nInstance() {
     vi,
     'zh-CN': zhCn,
     'zh-TW': zhTw,
-    bg
+    bg,
   };
 
   const instance = i18n.createInstance();
