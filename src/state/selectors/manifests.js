@@ -228,14 +228,28 @@ export const getManifestRelated = createSelector(
 */
 export const getRequiredStatement = createSelector(
   [getManifestoInstance],
-  manifest => manifest
-    && asArray(manifest.getRequiredStatement())
-      .filter(l => l.getValues().some(v => v))
-      .map(labelValuePair => ({
-        label: (labelValuePair.label && labelValuePair.label.getValue()) || null,
-        values: labelValuePair.getValues(),
-      })),
-);
+  manifest =>
+    manifest &&
+    asArray(manifest.getRequiredStatement()).flatMap(labelValuePair => {
+      const values = labelValuePair?.getValues() ?? []
+      if (!values.length) {
+        return []
+      }
+      // FIXME: Add usage of labelValuePair.getLabels() as soon as it's released
+      // see https://github.com/IIIF-Commons/manifesto/pull/166
+      const labels =
+        labelValuePair.label?.getValues(labelValuePair.defaultLocale) ?? []
+      return Array.from(
+        { length: Math.max(labels.length, values.length) },
+        (_, idx) => idx
+      )
+        .filter(idx => values[idx])
+        .map(idx => ({
+          label: labels[idx] ?? null,
+          values: [values[idx]],
+        }))
+    })
+)
 
 /**
 * Return the IIIF v2 rights (v3) or license (v2) data from a manifest or null
