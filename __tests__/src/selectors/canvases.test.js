@@ -3,7 +3,9 @@ import manifestFixture019 from '../../fixtures/version-2/019.json';
 import minimumRequired from '../../fixtures/version-2/minimumRequired.json';
 import minimumRequired3 from '../../fixtures/version-3/minimumRequired.json';
 import audioFixture from '../../fixtures/version-3/0002-mvm-audio.json';
+import textFixture from '../../fixtures/version-3/text-pdf.json';
 import videoFixture from '../../fixtures/version-3/0015-start.json';
+import videoWithAnnoCaptions from '../../fixtures/version-3/video_with_annotation_captions.json';
 import settings from '../../../src/config/settings';
 
 import {
@@ -14,6 +16,7 @@ import {
   getCanvasLabel,
   selectInfoResponse,
   getVisibleCanvasNonTiledResources,
+  getVisibleCanvasTextResources,
   getVisibleCanvasVideoResources,
   getVisibleCanvasAudioResources,
   getVisibleCanvasCaptions,
@@ -355,9 +358,7 @@ describe('getVisibleCanvasNonTiledResources', () => {
         },
       },
     };
-    expect(getVisibleCanvasNonTiledResources(
-      state, { windowId: 'a' },
-    )[0].id).toBe('http://iiif.io/api/presentation/2.0/example/fixtures/resources/page1-full.png');
+    expect(getVisibleCanvasNonTiledResources(state, { windowId: 'a' })[0].id).toBe('http://iiif.io/api/presentation/2.0/example/fixtures/resources/page1-full.png');
   });
   it('works for v3 Presentation API', () => {
     const state = {
@@ -376,9 +377,7 @@ describe('getVisibleCanvasNonTiledResources', () => {
         },
       },
     };
-    expect(getVisibleCanvasNonTiledResources(
-      state, { windowId: 'a' },
-    )[0].id).toBe('http://iiif.io/api/presentation/2.1/example/fixtures/resources/page1-full.png');
+    expect(getVisibleCanvasNonTiledResources(state, { windowId: 'a' })[0].id).toBe('http://iiif.io/api/presentation/2.1/example/fixtures/resources/page1-full.png');
   });
 
   describe('getVisibleCanvasVideoResources', () => {
@@ -399,14 +398,12 @@ describe('getVisibleCanvasNonTiledResources', () => {
           },
         },
       };
-      expect(getVisibleCanvasVideoResources(
-        state, { windowId: 'a' },
-      )[0].id).toBe('https://fixtures.iiif.io/video/indiana/30-minute-clock/medium/30-minute-clock.mp4');
+      expect(getVisibleCanvasVideoResources(state, { windowId: 'a' })[0].id).toBe('https://fixtures.iiif.io/video/indiana/30-minute-clock/medium/30-minute-clock.mp4');
     });
   });
 
   describe('getVisibleCanvasCaptions', () => {
-    it('returns canvases resources', () => {
+    it('returns v2 canvases resources', () => {
       const state = {
         manifests: {
           'https://iiif.io/api/cookbook/recipe/0015-start/manifest.json': {
@@ -423,9 +420,26 @@ describe('getVisibleCanvasNonTiledResources', () => {
           },
         },
       };
-      expect(getVisibleCanvasCaptions(
-        state, { windowId: 'a' },
-      )[0].id).toBe('https://example.com/file.vtt');
+      expect(getVisibleCanvasCaptions(state, { windowId: 'a' })[0].id).toBe('https://example.com/file.vtt');
+    });
+    it('returns v3 canvases resources', () => {
+      const state = {
+        manifests: {
+          'https://preview.iiif.io/cookbook/0219-using-caption-file/recipe/0219-using-caption-file/manifest.json': {
+            id: 'https://preview.iiif.io/cookbook/0219-using-caption-file/recipe/0219-using-caption-file/manifest.json',
+            json: videoWithAnnoCaptions,
+          },
+        },
+        windows: {
+          b: {
+            manifestId: 'https://preview.iiif.io/cookbook/0219-using-caption-file/recipe/0219-using-caption-file/manifest.json',
+            visibleCanvases: [
+              'https://preview.iiif.io/cookbook/0219-using-caption-file/recipe/0219-using-caption-file/canvas',
+            ],
+          },
+        },
+      };
+      expect(getVisibleCanvasCaptions(state, { windowId: 'b' })[0].id).toBe('https://fixtures.iiif.io/video/indiana/lunchroom_manners/lunchroom_manners.vtt');
     });
   });
 
@@ -447,9 +461,29 @@ describe('getVisibleCanvasNonTiledResources', () => {
           },
         },
       };
-      expect(getVisibleCanvasAudioResources(
-        state, { windowId: 'a' },
-      )[0].id).toBe('https://fixtures.iiif.io/audio/indiana/mahler-symphony-3/CD1/medium/128Kbps.mp4');
+      expect(getVisibleCanvasAudioResources(state, { windowId: 'a' })[0].id).toBe('https://fixtures.iiif.io/audio/indiana/mahler-symphony-3/CD1/medium/128Kbps.mp4');
+    });
+  });
+
+  describe('getVisibleCanvasTextResources', () => {
+    it('returns canvases resources', () => {
+      const state = {
+        manifests: {
+          'https://iiif.io/api/cookbook/recipe/0001-text-pdf/manifest.json': {
+            id: 'https://iiif.io/api/cookbook/recipe/0001-text-pdf/manifest.json',
+            json: textFixture,
+          },
+        },
+        windows: {
+          a: {
+            manifestId: 'https://iiif.io/api/cookbook/recipe/0001-text-pdf/manifest.json',
+            visibleCanvases: [
+              'https://iiif.io/api/cookbook/recipe/0001-text-pdf/canvas',
+            ],
+          },
+        },
+      };
+      expect(getVisibleCanvasTextResources(state, { windowId: 'a' })[0].id).toBe('https://fixtures.iiif.io/other/UCLA/kabuki_ezukushi_rtl.pdf');
     });
   });
 });

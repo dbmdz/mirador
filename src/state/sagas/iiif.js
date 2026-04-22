@@ -1,7 +1,6 @@
 import {
   all, call, put, select, takeEvery,
 } from 'redux-saga/effects';
-import fetch from 'isomorphic-unfetch';
 import { Utils } from 'manifesto.js';
 import normalizeUrl from 'normalize-url';
 import ActionTypes from '../actions/action-types';
@@ -64,7 +63,10 @@ function* fetchIiifResourceWithAuth(url, iiifResource, options, { degraded, fail
   }
 
   const { error, json, response } = yield call(
-    fetchIiifResource, url, urlOptions, { failure: arg => arg, success: arg => arg },
+    fetchIiifResource,
+    url,
+    urlOptions,
+    { failure: arg => arg, success: arg => arg },
   );
 
   // Hard error either requesting the resource or deserializing the JSON.

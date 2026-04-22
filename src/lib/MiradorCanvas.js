@@ -1,6 +1,8 @@
 import flatten from 'lodash/flatten';
 import flattenDeep from 'lodash/flattenDeep';
-import { Canvas } from 'manifesto.js';
+import { Canvas, AnnotationPage, Annotation } from 'manifesto.js';
+import { getIiifResourceImageService } from './iiif';
+
 /**
  * MiradorCanvas - adds additional, testable logic around Manifesto's Canvas
  * https://iiif-commons.github.io/manifesto/classes/_canvas_.manifesto.canvas.html
@@ -43,7 +45,7 @@ export default class MiradorCanvas {
    */
   get annotationListUris() {
     return flatten(
-      new Array(this.canvas.__jsonld.otherContent), // eslint-disable-line no-underscore-dangle
+      new Array(this.canvas.__jsonld.otherContent),
     )
       .filter(otherContent => otherContent && (typeof otherContent === 'string' || otherContent['@type'] === 'sc:AnnotationList'))
       .map(otherContent => (typeof otherContent === 'string' ? otherContent : otherContent['@id']));
@@ -52,7 +54,7 @@ export default class MiradorCanvas {
   /** */
   get canvasAnnotationPages() {
     return flatten(
-      new Array(this.canvas.__jsonld.annotations), // eslint-disable-line no-underscore-dangle
+      new Array(this.canvas.__jsonld.annotations),
     )
       .filter(annotations => annotations && annotations.type === 'AnnotationPage');
   }
@@ -66,19 +68,50 @@ export default class MiradorCanvas {
 
   /** */
   get imageResources() {
+    // TODO Clean up the following hack as soon as manifesto.js provides any information if an annotation body is a Choice option, and if so, whether it is the preferred one.
     const resources = flattenDeep([
       this.canvas.getImages().map(i => i.getResource()),
-      this.canvas.getContent().map(i => i.getBody()),
+      this.canvas.getContent().map(i => (i.__jsonld.body.type === 'Choice' ? i.__jsonld.body : i.getBody())),
     ]);
 
     return flatten(resources.map((resource) => {
-      switch (resource.getProperty('type')) {
-        case 'oa:Choice':
-          return new Canvas({ images: flatten([resource.getProperty('default'), resource.getProperty('item')]).map(r => ({ resource: r })) }, this.canvas.options).getImages().map(i => i.getResource());
-        default:
-          return resource;
+      const type = resource.type || resource.getProperty('type');
+      switch (type) {
+        case 'Choice': {
+          return new Canvas({ images: resource.items.map(r => ({ resource: r })) }, this.canvas.options)
+            .getImages().map((img, index) => {
+              const r = img.getResource();
+              if (r) {
+                r.preferred = !index;
+              }
+              return r;
+            });
+        }
+        case 'oa:Choice': {
+          return new Canvas({ images: flattenDeep([resource.getProperty('default'), resource.getProperty('item')]).map(r => ({ resource: r })) }, this.canvas.options).getImages()
+            .map((img, index) => {
+              const r = img.getResource();
+              if (r) {
+                r.preferred = !index;
+              }
+              return r;
+            });
+        }
+        default: {
+          const r = resource;
+          r.preferred = true;
+          return r;
+        }
       }
     }));
+  }
+
+  /** */
+  get textResources() {
+    const resources = flattenDeep([
+      this.canvas.getContent().map(i => i.getBody()),
+    ]);
+    return flatten(resources.filter((resource) => resource.getProperty('type') === 'Text'));
   }
 
   /** */
@@ -86,7 +119,6 @@ export default class MiradorCanvas {
     const resources = flattenDeep([
       this.canvas.getContent().map(i => i.getBody()),
     ]);
-
     return flatten(resources.filter((resource) => resource.getProperty('type') === 'Video'));
   }
 
@@ -100,10 +132,23 @@ export default class MiradorCanvas {
   }
 
   /** */
-  get vttContent() {
+  get v2VttContent() {
     const resources = flattenDeep([
       this.canvas.getContent().map(i => i.getBody()),
     ]);
+
+    return flatten(resources.filter((resource) => resource.getProperty('format') === 'text/vtt'));
+  }
+
+  /** IIIF v3 captions are stored as 'supplementing' Annotations rather than in the resource content itself */
+  get v3VttContent() {
+    const resources = flattenDeep(this.canvasAnnotationPages.map(annoPage => {
+      const manifestoAnnoPage = new AnnotationPage(annoPage, this.canvas.options);
+      return manifestoAnnoPage.getItems().map(item => {
+        const manifestoAnnotation = new Annotation(item, this.canvas.options);
+        return manifestoAnnotation.getBody();
+      });
+    }));
 
     return flatten(resources.filter((resource) => resource.getProperty('format') === 'text/vtt'));
   }
@@ -146,28 +191,27 @@ export default class MiradorCanvas {
 
   /** */
   get iiifImageResources() {
-    return this.imageResources
-      .filter(r => r && r.getServices()[0] && r.getServices()[0].id);
+    return this.imageResources.filter(r => r && getIiifResourceImageService(r)?.id);
   }
 
   /** */
   get imageServiceIds() {
-    return this.iiifImageResources.map(r => r.getServices()[0].id);
+    return this.iiifImageResources.map(r => r && getIiifResourceImageService(r)?.id);
   }
 
   /**
    * Get the canvas service
    */
   get service() {
-    return this.canvas.__jsonld.service; // eslint-disable-line no-underscore-dangle
+    return this.canvas.__jsonld.service;
   }
 
   /**
    * Get the canvas label
    */
-  getLabel() {
+  getLabel(locale = undefined) {
     return this.canvas.getLabel().length > 0
-      ? this.canvas.getLabel().getValue()
+      ? this.canvas.getLabel().getValue(locale)
       : String(this.canvas.index + 1);
   }
 }

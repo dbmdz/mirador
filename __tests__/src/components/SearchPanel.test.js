@@ -1,15 +1,14 @@
-import React from 'react';
-import { shallow } from 'enzyme';
-import Button from '@material-ui/core/Button';
-import CompanionWindow from '../../../src/containers/CompanionWindow';
-import SearchResults from '../../../src/containers/SearchResults';
+import { render, screen } from '@tests/utils/test-utils';
+import userEvent from '@testing-library/user-event';
+import { t } from 'i18next';
+
 import { SearchPanel } from '../../../src/components/SearchPanel';
 
 /**
  * Helper function to create a shallow wrapper around SearchPanel
  */
 function createWrapper(props) {
-  return shallow(
+  return render(
     <SearchPanel
       id="xyz"
       fetchSearch={() => {}}
@@ -17,57 +16,70 @@ function createWrapper(props) {
       windowId="window"
       {...props}
     />,
+    { preloadedState: { companionWindows: { xyz: { content: 'search' } } } },
   );
 }
 
 describe('SearchPanel', () => {
   it('renders a CompanionWindow', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.find(CompanionWindow).length).toEqual(1);
+    createWrapper();
+    expect(screen.getByRole('complementary')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Search' })).toBeInTheDocument();
   });
 
   it('passes a Clear chip as the CompanionWindow title prop', () => {
-    const wrapper = createWrapper({ query: 'Wolpertinger' });
+    createWrapper({ query: 'Wolpertinger' });
 
-    const title = wrapper.find(CompanionWindow).props().title.props.children;
-    expect(title[0]).toEqual('searchTitle');
-    expect(title[1].type.displayName).toEqual('WithStyles(ForwardRef(Chip))');
+    expect(screen.getByRole('heading', { name: /Search/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reset search' })).toBeInTheDocument();
   });
 
-  it('the Clear chip calls the removeSearch prop', () => {
-    const removeSearch = jest.fn();
-    const wrapper = createWrapper({ query: 'Wolpertinger', removeSearch });
-    const chip = wrapper.find(CompanionWindow).props().title.props.children[1];
+  it('the Clear chip calls the removeSearch prop', async () => {
+    const user = userEvent.setup();
+    const removeSearch = vi.fn();
 
-    chip.props.onClick();
+    createWrapper({ query: 'Wolpertinger', removeSearch });
+
+    await user.click(screen.getByRole('button', { name: 'Reset search' }));
+
     expect(removeSearch).toHaveBeenCalled();
   });
 
   it('does not render a Clear chip if there is no search query to be cleared', () => {
-    const wrapper = createWrapper();
+    createWrapper();
 
-    const title = wrapper.find(CompanionWindow).props().title.props.children;
-    expect(title[0]).toEqual('searchTitle');
-    expect(title[1]).toEqual('');
+    expect(screen.queryByRole('button', { name: 'Reset search' })).not.toBeInTheDocument();
   });
 
   it('has the SearchPanelControls component', () => {
-    const titleControls = createWrapper().find(CompanionWindow).prop('titleControls');
-    expect(titleControls.type.displayName).toEqual('Connect(WithStyles(WithPlugins(SearchPanelControls)))');
-  });
-  it('has the SearchResults', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.find(SearchResults).length).toEqual(1);
+    createWrapper();
+
+    expect(screen.getByRole('combobox', { name: 'search terms' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Search in the document' })).toBeInTheDocument();
   });
 
-  it('suggests searches', () => {
-    const fetchSearch = jest.fn();
-    const wrapper = createWrapper({ fetchSearch, suggestedSearches: ['abc'] });
-    expect(wrapper.find(Button).length).toEqual(1);
-    wrapper.find(Button).simulate('click');
+  it('has the SearchResults list', () => {
+    createWrapper();
+
+    expect(screen.getByRole('list')).toBeInTheDocument();
+  });
+
+  it('suggests searches', async () => {
+    const user = userEvent.setup();
+    const fetchSearch = vi.fn();
+    createWrapper({
+      fetchSearch, query: '', suggestedSearches: ['abc'], t,
+    });
+
+    expect(screen.getByRole('button', { name: 'Search this document for "abc"' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Search this document for "abc"' }));
     expect(fetchSearch).toHaveBeenCalledWith('http://example.com/search?q=abc', 'abc');
+  });
 
-    wrapper.setProps({ query: 'something' });
-    expect(wrapper.find(Button).length).toEqual(0);
+  it('does not suggest searches if the user has made a query', () => {
+    const fetchSearch = vi.fn();
+    createWrapper({ fetchSearch, query: 'blah', suggestedSearches: ['abc'] });
+
+    expect(screen.queryByRole('button', { name: 'Search this document for "abc"' })).not.toBeInTheDocument();
   });
 });

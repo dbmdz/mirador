@@ -1,10 +1,18 @@
-import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen } from '@tests/utils/test-utils';
 import { BackgroundPluginArea } from '../../../src/components/BackgroundPluginArea';
-import { PluginHook } from '../../../src/components/PluginHook';
+import { usePlugins } from '../../../src/extend/usePlugins';
 
-it('renders the component', () => {
-  const wrapper = shallow(<BackgroundPluginArea />);
-  expect(wrapper.find('.mirador-background-plugin-area').length).toBe(1);
-  expect(wrapper.find(PluginHook).length).toBe(1);
+vi.mock('../../../src/extend/usePlugins');
+
+/** */
+const mockComponent = () => (
+  <div data-testid="test" />
+);
+
+describe('BackgroundPluginArea', () => {
+  it('renders the component', () => {
+    vi.mocked(usePlugins).mockReturnValue({ PluginComponents: [mockComponent] });
+    render(<BackgroundPluginArea />);
+    expect(screen.getByTestId('test')).toBeInTheDocument();
+  });
 });

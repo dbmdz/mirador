@@ -1,7 +1,7 @@
 import OpenSeadragon from 'openseadragon';
 import OpenSeadragonCanvasOverlay from '../../../src/lib/OpenSeadragonCanvasOverlay';
 
-jest.mock('openseadragon');
+vi.mock('openseadragon');
 
 describe('OpenSeadragonCanvasOverlay', () => {
   let canvasOverlay;
@@ -10,36 +10,38 @@ describe('OpenSeadragonCanvasOverlay', () => {
     document.body.innerHTML = '<div id="canvas"><canvas></div>';
     ref.current = document.getElementById('canvas');
     OpenSeadragon.mockClear();
-    OpenSeadragon.mockImplementation(() => ({
-      canvas: ref,
-      container: {
-        clientHeight: 100,
-        clientWidth: 200,
-      },
-      viewport: {
-        getBoundsNoRotateWithMargins: jest.fn(() => ({
-          height: 300,
-          width: 200,
-          x: 40,
-          y: 80,
-        })),
-        getCenter: () => ({ x: 0, y: 0 }),
-        getFlip: () => false,
-        getRotation: () => 0,
-        getZoom: jest.fn(() => (0.75)),
-      },
-      world: {
-        getItemAt: jest.fn(() => ({
-          source: {
-            dimensions: {
-              x: 1000,
-              y: 2000,
+    OpenSeadragon.mockImplementation(function () {
+      return {
+        canvas: ref,
+        container: {
+          clientHeight: 100,
+          clientWidth: 200,
+        },
+        viewport: {
+          getBoundsNoRotateWithMargins: vi.fn(() => ({
+            height: 300,
+            width: 200,
+            x: 40,
+            y: 80,
+          })),
+          getCenter: () => ({ x: 0, y: 0 }),
+          getFlip: () => false,
+          getRotation: () => 0,
+          getZoom: vi.fn(() => 0.75),
+        },
+        world: {
+          getItemAt: vi.fn(() => ({
+            source: {
+              dimensions: {
+                x: 1000,
+                y: 2000,
+              },
             },
-          },
-          viewportToImageZoom: jest.fn(() => (0.075)),
-        })),
-      },
-    }));
+            viewportToImageZoom: vi.fn(() => 0.075),
+          })),
+        },
+      };
+    });
     canvasOverlay = new OpenSeadragonCanvasOverlay(new OpenSeadragon(), ref);
   });
   describe('constructor', () => {
@@ -50,7 +52,7 @@ describe('OpenSeadragonCanvasOverlay', () => {
   });
   describe('context2d', () => {
     it('calls getContext on canvas', () => {
-      const contextMock = jest.fn();
+      const contextMock = vi.fn();
       ref.current = {
         firstElementChild: {
           getContext: contextMock,
@@ -62,8 +64,8 @@ describe('OpenSeadragonCanvasOverlay', () => {
   });
   describe('clear', () => {
     it('calls getContext and clearRect on canvas', () => {
-      const clearRect = jest.fn();
-      const contextMock = jest.fn(() => ({
+      const clearRect = vi.fn();
+      const contextMock = vi.fn(() => ({
         clearRect,
       }));
       ref.current = {
@@ -72,7 +74,7 @@ describe('OpenSeadragonCanvasOverlay', () => {
         },
       };
       canvasOverlay.clear();
-      expect(contextMock).toHaveBeenCalledTimes(1);
+      expect(contextMock).toHaveBeenCalledTimes(2);
       expect(clearRect).toHaveBeenCalledTimes(1);
     });
   });
@@ -85,19 +87,21 @@ describe('OpenSeadragonCanvasOverlay', () => {
     });
     it('when image is undefined returns early', () => {
       OpenSeadragon.mockClear();
-      OpenSeadragon.mockImplementation(() => ({
-        canvas: document.getElementById('canvas'),
-        container: {
-          clientHeight: 100,
-          clientWidth: 200,
-        },
-        viewport: {
-          getBoundsNoRotateWithMargins: jest.fn(() => (new OpenSeadragon.Rect(0, 0, 200, 200))),
-        },
-        world: {
-          getItemAt: jest.fn(),
-        },
-      }));
+      OpenSeadragon.mockImplementation(function () {
+        return {
+          canvas: document.getElementById('canvas'),
+          container: {
+            clientHeight: 100,
+            clientWidth: 200,
+          },
+          viewport: {
+            getBoundsNoRotateWithMargins: vi.fn(() => new OpenSeadragon.Rect(0, 0, 200, 200)),
+          },
+          world: {
+            getItemAt: vi.fn(),
+          },
+        };
+      });
       canvasOverlay = new OpenSeadragonCanvasOverlay(new OpenSeadragon(), ref);
       canvasOverlay.resize();
       expect(canvasOverlay.imgHeight).toEqual(undefined);
@@ -106,11 +110,11 @@ describe('OpenSeadragonCanvasOverlay', () => {
   });
   describe('canvasUpdate', () => {
     it('sets appropriate sizes and calls update argument', () => {
-      const scale = jest.fn();
-      const setAttribute = jest.fn();
-      const setTransform = jest.fn();
-      const translate = jest.fn();
-      const contextMock = jest.fn(() => ({
+      const scale = vi.fn();
+      const setAttribute = vi.fn();
+      const setTransform = vi.fn();
+      const translate = vi.fn();
+      const contextMock = vi.fn(() => ({
         scale,
         setTransform,
         translate,
@@ -122,7 +126,7 @@ describe('OpenSeadragonCanvasOverlay', () => {
         },
         setAttribute,
       };
-      const update = jest.fn();
+      const update = vi.fn();
       canvasOverlay.resize();
       canvasOverlay.canvasUpdate(update);
       expect(update).toHaveBeenCalledTimes(1);

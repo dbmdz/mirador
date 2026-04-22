@@ -2,8 +2,6 @@ import {
   all, call, put, select, takeEvery,
 } from 'redux-saga/effects';
 import ActionTypes from '../actions/action-types';
-import MiradorManifest from '../../lib/MiradorManifest';
-import MiradorCanvas from '../../lib/MiradorCanvas';
 import {
   setContentSearchCurrentAnnotation,
   selectAnnotation,
@@ -28,8 +26,11 @@ import {
   getCanvases,
   selectInfoResponses,
   getWindowConfig,
+  getMiradorCanvasWrapper,
+  getMiradorManifestWrapper,
 } from '../selectors';
 import { fetchManifests } from './iiif';
+import { getIiifResourceImageService } from '../../lib/iiif';
 
 /** */
 export function* fetchWindowManifest(action) {
@@ -94,20 +95,26 @@ export function* setWindowStartingCanvas(action) {
   const windowId = action.id || action.window.id;
 
   if (canvasId) {
-    const thunk = yield call(
-      setCanvas, windowId, canvasId, null, { preserveViewport: !!action.payload },
-    );
+    // Preserve viewport when initialViewerConfig exists, event if the preserveViewport OSD setting is set to false
+    const preserveViewport = !!action.payload || !!(action.window?.initialViewerConfig);
+    // When canvasId is explicitly provided, always pass preserveViewport flag
+    const thunk = yield call(setCanvas, windowId, canvasId, null, { preserveViewport });
     yield put(thunk);
   } else {
+    const getMiradorManifest = yield select(getMiradorManifestWrapper);
     const manifestoInstance = yield select(getManifestoInstance, { manifestId });
     if (manifestoInstance) {
       // set the startCanvas
-      const miradorManifest = new MiradorManifest(manifestoInstance);
+      const miradorManifest = getMiradorManifest(manifestoInstance);
       const startCanvas = miradorManifest.startCanvas
         || miradorManifest.canvasAt(canvasIndex || 0)
         || miradorManifest.canvasAt(0);
       if (startCanvas) {
-        const thunk = yield call(setCanvas, windowId, startCanvas.id);
+        const preserveViewport = !!action.payload || !!(action.window?.initialViewerConfig);
+        // When canvas is calculated, only pass preserveViewport when true
+        const thunk = preserveViewport
+          ? yield call(setCanvas, windowId, startCanvas.id, null, { preserveViewport })
+          : yield call(setCanvas, windowId, startCanvas.id);
         yield put(thunk);
       }
     }
@@ -140,7 +147,7 @@ export function getAnnotationsBySearch(state, { canvasIds, companionWindowIds, w
     const resourceAnnotations = annotations.resources;
     const hitAnnotation = resourceAnnotations.find(r => canvasIds.includes(r.targetId));
 
-    if (hitAnnotation) accumulator[companionWindowId] = [hitAnnotation.id];
+    if (hitAnnotation) accumulator[companionWindowId] = [hitAnnotation.id];  // eslint-disable-line no-param-reassign
 
     return accumulator;
   }, {});
@@ -157,7 +164,12 @@ export function* setCurrentAnnotationsOnCurrentCanvas({
   if (companionWindowIds.length === 0) return;
 
   const annotationBySearch = yield select(
-    getAnnotationsBySearch, { canvasIds: visibleCanvases, companionWindowIds, windowId },
+    getAnnotationsBySearch,
+    {
+      canvasIds: visibleCanvases,
+      companionWindowIds,
+      windowId,
+    },
   );
 
   yield all(
@@ -218,9 +230,7 @@ export function* setCanvasOfFirstSearchResult({ companionWindowId, windowId }) {
 
   if (selectedIds.length !== 0) return;
 
-  const annotations = yield select(
-    getSortedSearchAnnotationsForCompanionWindow, { companionWindowId, windowId },
-  );
+  const annotations = yield select(getSortedSearchAnnotationsForCompanionWindow, { companionWindowId, windowId });
   if (!annotations || annotations.length === 0) return;
 
   yield put(selectAnnotation(windowId, annotations[0].id));
@@ -244,11 +254,12 @@ export function* fetchInfoResponses({ visibleCanvases: visibleCanvasIds, windowI
   const canvases = yield select(getCanvases, { windowId });
   const infoResponses = yield select(selectInfoResponses);
   const visibleCanvases = (canvases || []).filter(c => visibleCanvasIds.includes(c.id));
+  const getMiradorCanvas = yield select(getMiradorCanvasWrapper);
 
   yield all(visibleCanvases.map((canvas) => {
-    const miradorCanvas = new MiradorCanvas(canvas);
+    const miradorCanvas = getMiradorCanvas(canvas);
     return all(miradorCanvas.iiifImageResources.map(imageResource => (
-      !infoResponses[imageResource.getServices()[0].id]
+      !infoResponses[getIiifResourceImageService(imageResource)?.id]
         && put(fetchInfoResponse({ imageResource, windowId }))
     )).filter(Boolean));
   }));
@@ -268,6 +279,7 @@ export default function* windowsSaga() {
     takeEvery(ActionTypes.ADD_WINDOW, fetchWindowManifest),
     takeEvery(ActionTypes.UPDATE_WINDOW, fetchWindowManifest),
     takeEvery(ActionTypes.UPDATE_WINDOW, setCanvasOnNewSequence),
+    takeEvery(ActionTypes.UPDATE_WINDOW, fetchCollectionManifests),
     takeEvery(ActionTypes.SET_CANVAS, setCurrentAnnotationsOnCurrentCanvas),
     takeEvery(ActionTypes.SET_CANVAS, fetchInfoResponses),
     takeEvery(ActionTypes.UPDATE_COMPANION_WINDOW, fetchCollectionManifests),

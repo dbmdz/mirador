@@ -5,7 +5,7 @@ import ActionTypes from '../actions/action-types';
 /**
  * windowsReducer
  */
-export const windowsReducer = (state = {}, action) => {
+export const windowsReducer = (state = {}, action) => { // eslint-disable-line complexity
   switch (action.type) {
     case ActionTypes.ADD_WINDOW:
       return { ...state, [action.window.id]: action.window };
@@ -157,7 +157,7 @@ export const windowsReducer = (state = {}, action) => {
           ...state[action.windowId],
           collectionDialogOn: true,
           collectionManifestId: action.manifestId,
-          collectionPath: action.collectionPath,
+          dialogCollectionPath: action.dialogCollectionPath,
         },
       };
     case ActionTypes.HIDE_COLLECTION_DIALOG:

@@ -1,12 +1,10 @@
 import { compose } from 'redux';
 import { connect } from 'react-redux';
-import { withTranslation } from 'react-i18next';
-import { withStyles } from '@material-ui/core';
 import { withPlugins } from '../extend/withPlugins';
 import {
   getManifest,
   getManifestTitle, getManifestThumbnail, getCanvases,
-  getManifestLogo, getManifestProvider, getWindowManifests,
+  getManifestLogo, getManifestProviderName, getWindowManifests,
   getManifestoInstance, getSequenceBehaviors,
 } from '../state/selectors';
 import * as actions from '../state/actions';
@@ -25,14 +23,14 @@ const mapStateToProps = (state, { manifestId, provider }) => {
     : getCanvases(state, { manifestId }).length;
   return {
     active: getWindowManifests(state).includes(manifestId),
-    error: manifest.error,
+    error: manifest.error || (!manifesto && !!manifest.json),
     isCollection,
     isFetching: manifest.isFetching,
     isMultipart: isCollection
       && getSequenceBehaviors(state, { manifestId }).includes('multi-part'),
     manifestLogo: getManifestLogo(state, { manifestId }),
     provider: provider
-      || getManifestProvider(state, { manifestId }),
+      || getManifestProviderName(state, { manifestId }),
     ready: !!manifest.json,
     size,
     thumbnail: getManifestThumbnail(state, { manifestId }),
@@ -50,51 +48,7 @@ const mapDispatchToProps = {
   fetchManifest: actions.fetchManifest,
 };
 
-/**
- *
- * @param theme
- * @returns {{root: {}, label: {textAlign: string, textTransform: string}}}
- */
-const styles = theme => ({
-  active: {},
-  buttonGrid: {
-  },
-  label: {
-    textAlign: 'left',
-    textTransform: 'initial',
-  },
-  logo: {
-    height: '2.5rem',
-    maxWidth: '100%',
-    objectFit: 'contain',
-    paddingRight: 8,
-  },
-  placeholder: {
-    backgroundColor: theme.palette.grey[300],
-  },
-  root: {
-    ...theme.mixins.gutters(),
-    '&$active': {
-      borderLeft: `4px solid ${theme.palette.primary.main}`,
-    },
-    '&:hover,&:focus-within': {
-      '&$active': {
-        borderLeft: `4px solid ${theme.palette.primary.main}`,
-      },
-      backgroundColor: theme.palette.action.hover,
-      borderLeft: `4px solid ${theme.palette.action.hover}`,
-    },
-    borderLeft: '4px solid transparent',
-  },
-  thumbnail: {
-    maxWidth: '100%',
-    objectFit: 'contain',
-  },
-});
-
 const enhance = compose(
-  withTranslation(),
-  withStyles(styles),
   connect(mapStateToProps, mapDispatchToProps),
   withPlugins('ManifestListItem'),
 );

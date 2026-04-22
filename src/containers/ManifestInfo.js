@@ -1,9 +1,9 @@
 import { compose } from 'redux';
 import { connect } from 'react-redux';
-import { withTranslation } from 'react-i18next';
 import { withPlugins } from '../extend/withPlugins';
 import {
   getManifestDescription,
+  getManifestSummary,
   getManifestTitle,
   getManifestMetadata,
 } from '../state/selectors';
@@ -14,16 +14,18 @@ import { ManifestInfo } from '../components/ManifestInfo';
  * @memberof WindowSideBarInfoPanel
  * @private
  */
-const mapStateToProps = (state, { id, manifestId, windowId }) => ({
+const mapStateToProps = (state, { companionWindowId, manifestId, windowId }) => ({
   manifestDescription: getManifestDescription(state, {
-    companionWindowId: id, manifestId, windowId,
+    companionWindowId, manifestId, windowId,
   }),
-  manifestLabel: getManifestTitle(state, { companionWindowId: id, manifestId, windowId }),
-  manifestMetadata: getManifestMetadata(state, { companionWindowId: id, manifestId, windowId }),
+  manifestLabel: getManifestTitle(state, { companionWindowId, manifestId, windowId }),
+  manifestMetadata: getManifestMetadata(state, { companionWindowId, manifestId, windowId }),
+  manifestSummary: getManifestSummary(state, {
+    companionWindowId, manifestId, windowId,
+  }),
 });
 
 const enhance = compose(
-  withTranslation(),
   connect(mapStateToProps),
   withPlugins('ManifestInfo'),
 );

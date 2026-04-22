@@ -1,61 +1,66 @@
-import ReactDOM from 'react-dom';
-import { shallow } from 'enzyme';
+import { act, render, screen } from '@tests/utils/test-utils';
 import MiradorViewer from '../../../src/lib/MiradorViewer';
 
-jest.unmock('react-i18next');
-jest.mock('react-dom');
-jest.mock('isomorphic-unfetch', () => jest.fn(() => Promise.resolve({ json: () => ({}) })));
+/** */
+const DummyPlugin = () => <div data-testid="plugin">Plugin</div>;
 
 describe('MiradorViewer', () => {
   let container;
-  let instance;
-  beforeAll(() => {
-    container = document.createElement('div');
-    container.id = 'mirador';
-    document.body.appendChild(container);
-    ReactDOM.render = jest.fn();
-    ReactDOM.unmountComponentAtNode = jest.fn();
-    instance = new MiradorViewer({ id: 'mirador' });
+  beforeEach(async () => {
+    render(<div id="mirador" data-testid="container" />);
+    container = await screen.findByTestId('container');
   });
-  afterAll(() => {
-    document.body.removeChild(container);
-  });
+
   describe('constructor', () => {
     it('returns viewer store', () => {
+      const instance = new MiradorViewer({});
+
+      // eslint-disable-next-line testing-library/no-unnecessary-act
+      act(() => { instance.renderInto(container); });
       expect(instance.store.dispatch).toBeDefined();
     });
     it('renders via ReactDOM', () => {
-      expect(ReactDOM.render).toHaveBeenCalled();
+      const instance = new MiradorViewer({});
+
+      // eslint-disable-next-line testing-library/no-unnecessary-act
+      act(() => { instance.renderInto(container); });
+
+      expect(screen.getByTestId('container')).not.toBeEmptyDOMElement();
     });
   });
   describe('processConfig', () => {
     it('transforms config values to actions to dispatch to store', () => {
-      instance = new MiradorViewer({
-        catalog: [
-          { manifestId: 'http://media.nga.gov/public/manifests/nga_highlights.json', provider: 'National Gallery of Art' },
-        ],
-        id: 'mirador',
-        windows: [
-          {
-            canvasId: 'https://iiif.harvardartmuseums.org/manifests/object/299843/canvas/canvas-47174892',
-            loadedManifest: 'https://iiif.harvardartmuseums.org/manifests/object/299843',
-            thumbnailNavigationPosition: 'far-bottom',
-          },
-          {
-            loadedManifest: 'https://iiif.harvardartmuseums.org/manifests/object/299843',
-            view: 'book',
-          },
-        ],
-      },
-      {
-        plugins: [{
-          config: {
-            foo: 'bar',
-          },
-          mode: 'add',
-          target: 'WindowTopBarPluginArea',
-        }],
-      });
+      const instance = new MiradorViewer(
+        {
+          catalog: [
+            { manifestId: 'http://media.nga.gov/public/manifests/nga_highlights.json', provider: 'National Gallery of Art' },
+          ],
+          windows: [
+            {
+              canvasId: 'https://iiif.harvardartmuseums.org/manifests/object/299843/canvas/canvas-47174892',
+              loadedManifest: 'https://iiif.harvardartmuseums.org/manifests/object/299843',
+              thumbnailNavigationPosition: 'far-bottom',
+            },
+            {
+              loadedManifest: 'https://iiif.harvardartmuseums.org/manifests/object/299843',
+              view: 'book',
+            },
+          ],
+        },
+        {
+          plugins: [{
+            component: DummyPlugin,
+            config: {
+              foo: 'bar',
+            },
+            mode: 'add',
+            target: 'WindowTopBarPluginArea',
+          }],
+        },
+      );
+
+      // eslint-disable-next-line testing-library/no-unnecessary-act
+      act(() => { instance.renderInto(container); });
 
       const { windows, catalog, config } = instance.store.getState();
       const windowIds = Object.keys(windows);
@@ -73,36 +78,39 @@ describe('MiradorViewer', () => {
       expect(catalog[1].provider).toBe('National Gallery of Art');
       expect(config.foo).toBe('bar');
     });
+
     it('merges translation configs from multiple plugins', () => {
-      instance = new MiradorViewer({
-        id: 'mirador',
-      },
-      {
-        plugins: [
-          {
-            config: {
-              translations: {
-                en: {
-                  foo: 'bar',
+      const instance = new MiradorViewer(
+        {},
+        {
+          plugins: [
+            {
+              component: DummyPlugin,
+              config: {
+                translations: {
+                  en: {
+                    foo: 'bar',
+                  },
                 },
               },
+              mode: 'add',
+              target: 'WindowTopBarPluginArea',
             },
-            mode: 'add',
-            target: 'WindowTopBarPluginArea',
-          },
-          {
-            config: {
-              translations: {
-                en: {
-                  bat: 'bar',
+            {
+              component: DummyPlugin,
+              config: {
+                translations: {
+                  en: {
+                    bat: 'bar',
+                  },
                 },
               },
+              mode: 'wrap',
+              target: 'Window',
             },
-            mode: 'wrap',
-            target: 'Window',
-          },
-        ],
-      });
+          ],
+        },
+      );
 
       const { config } = instance.store.getState();
 
@@ -114,17 +122,30 @@ describe('MiradorViewer', () => {
   });
 
   describe('render', () => {
-    it('passes props through to the App component', () => {
-      const rendered = shallow(instance.render({ some: 'prop' }));
-      expect(rendered.find('App').length).toBe(1);
-      expect(rendered.find('App').prop('some')).toBe('prop');
+    it('passes props through to the App component', async () => {
+      const instance = new MiradorViewer({});
+      const plugins = [{
+        component: DummyPlugin,
+        mode: 'wrap',
+        target: 'AppProviders',
+      }];
+
+      render(instance.render({ plugins }));
+
+      expect(await screen.findByTestId('plugin')).toBeInTheDocument();
     });
   });
 
   describe('unmount', () => {
     it('unmounts via ReactDOM', () => {
-      instance.unmount();
-      expect(ReactDOM.unmountComponentAtNode).toHaveBeenCalled();
+      const instance = new MiradorViewer({});
+
+      // eslint-disable-next-line testing-library/no-unnecessary-act
+      act(() => { instance.renderInto(container); });
+      expect(container).not.toBeEmptyDOMElement();
+      // eslint-disable-next-line testing-library/no-unnecessary-act
+      act(() => { instance.unmount(); });
+      expect(container).toBeEmptyDOMElement();
     });
   });
 });

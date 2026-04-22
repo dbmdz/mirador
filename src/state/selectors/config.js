@@ -1,45 +1,45 @@
 import { createSelector } from 'reselect';
 import deepmerge from 'deepmerge';
-import { miradorSlice } from './utils';
+import { miradorSlice, EMPTY_ARRAY, EMPTY_OBJECT } from './utils';
 import { getWorkspace } from './getters';
 
-/** */
+/**
+ * Returns the config from the redux state.
+ * @param {object} state
+ * @returns {object} containing config
+ */
 export function getConfig(state) {
   const slice = miradorSlice(state || {});
-  return slice.config || {};
+  return slice.config || EMPTY_OBJECT;
 }
 
 /**
  * Extract an exportable version of state using the configuration from the config.
+ * @param {object} state
+ * @returns {object} containing exportable state
  */
 export function getExportableState(state) {
   const exportConfig = getConfig(state).export;
 
-  return Object.entries(exportConfig).reduce(
-    (acc, [stem, value]) => {
-      if (value === true) {
-        acc[stem] = state[stem];
-      } else if (value.filter) {
-        acc[stem] = Object.entries(state[stem])
-          .filter(value.filter)
-          .reduce(
-            (stemAcc, [k, v]) => {
-              stemAcc[k] = v; // eslint-disable-line no-param-reassign
-              return stemAcc;
-            },
-            {},
-          );
-      }
-      return acc;
-    },
-    {},
-  );
+  return Object.entries(exportConfig).reduce((acc, [stem, value]) => {
+    if (value === true) {
+      acc[stem] = state[stem];  // eslint-disable-line no-param-reassign
+    } else if (value.filter) {
+      acc[stem] = Object.entries(state[stem])  // eslint-disable-line no-param-reassign
+        .filter(value.filter)
+        .reduce((stemAcc, [k, v]) => {
+          stemAcc[k] = v;  // eslint-disable-line no-param-reassign
+          return stemAcc;
+        }, {});
+    }
+    return acc;
+  }, {});
 }
 
 /**
-* Return languages from config (in state) and indicate which is currently set
+* Return languages from config (in state) and indicate which is currently set.
 * @param {object} state
-* @return {Array} [ {locale: 'de', label: 'Deutsch', current: true}, ... ]
+* @returns {Array} [ {locale: 'de', label: 'Deutsch', current: true}, ... ]
 */
 export const getLanguagesFromConfigWithCurrent = createSelector(
   [getConfig],
@@ -50,6 +50,11 @@ export const getLanguagesFromConfigWithCurrent = createSelector(
   })),
 );
 
+/**
+ * Returns if showZoomControls is set in the config.
+ * @param {object} state
+ * @returns {boolean}
+ */
 export const getShowZoomControlsConfig = createSelector(
   [
     getWorkspace,
@@ -62,27 +67,56 @@ export const getShowZoomControlsConfig = createSelector(
   ),
 );
 
+/**
+ * Returns the theme from the config.
+ * @param {object} state
+ * @returns {object} {palette: {...}, typography: {...}, overrides: {...}, ...}
+ */
 export const getTheme = createSelector(
   [getConfig],
   ({ theme, themes, selectedTheme }) => deepmerge(theme, themes[selectedTheme] || {}),
 );
 
+/**
+ * Returns the theme ids from the config.
+ * @param {object} state
+ * @returns {Array} ['dark', 'light']
+ */
 export const getThemeIds = createSelector(
   [getConfig],
   ({ themes }) => Object.keys(themes),
 );
 
+/* @deprecated */
 export const getContainerId = createSelector(
   [getConfig],
   ({ id }) => id,
 );
 
+/**
+ * Returns the theme direction from the config.
+ * @param {object} state
+ * @returns {string}
+ */
 export const getThemeDirection = createSelector(
   [getConfig],
   ({ theme }) => theme.direction || 'ltr',
 );
-
+/**
+ * Returns the requests configurations from the config.
+ * @param {object} state
+ * @returns {object} {preprocessor: [...], postprocessor: [...]}
+ */
 export const getRequestsConfig = createSelector(
   [getConfig],
-  ({ requests }) => requests || {},
+  ({ requests }) => requests || EMPTY_OBJECT,
+);
+/**
+ * Returns the thumbnails configurations from the config.
+ * @param {object} state
+ * @returns {object} {preprocessor: [...], postprocessor: [...]}
+ */
+export const getThumbnailsConfig = createSelector(
+  [getConfig],
+  ({ thumbnails }) => thumbnails || EMPTY_OBJECT,
 );

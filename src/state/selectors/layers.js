@@ -1,36 +1,56 @@
 import { createSelector } from 'reselect';
-import MiradorCanvas from '../../lib/MiradorCanvas';
+import { getMiradorCanvasWrapper } from './wrappers';
 import { getCanvas, getVisibleCanvasIds } from './canvases';
-import { miradorSlice } from './utils';
+import { miradorSlice, EMPTY_ARRAY } from './utils';
 
 /**
- * Get the image layers from a canvas
+ * Get the image layers from a canvas.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.canvasId
+ * @param {string} props.windowId
+ * @param {string} props.companionWindowId
+ * @returns {Array}
  */
 export const getCanvasLayers = createSelector(
   [
     getCanvas,
+    getMiradorCanvasWrapper,
   ],
-  (canvas) => {
+  (canvas, getMiradorCanvas) => {
     if (!canvas) return [];
-    const miradorCanvas = new MiradorCanvas(canvas);
-    return miradorCanvas.imageResources;
+    return getMiradorCanvas(canvas).imageResources;
   },
 );
 
-/**
- * Get the layer state for a particular canvas
- */
-export const getLayers = createSelector(
+export const getLayersForWindow = createSelector(
   [
-    state => miradorSlice(state).layers || {},
+    state => miradorSlice(state).layers,
     (state, { windowId }) => windowId,
-    (state, { canvasId }) => canvasId,
   ],
-  (layers, windowId, canvasId) => (layers[windowId] || {})[canvasId],
+  (layers, windowId) => (layers ? (layers[windowId] || EMPTY_ARRAY) : EMPTY_ARRAY),
 );
 
 /**
- * Returns a list of canvas layers, sorted by the layer state configuration
+ * Get the layer state for a particular canvas.
+ * @param {object} state
+ * @param {string} windowId
+ * @returns {object}
+ */
+export const getLayers = createSelector(
+  [
+    getLayersForWindow,
+    (state, { canvasId }) => canvasId,
+  ],
+  (layers, canvasId) => layers[canvasId],
+);
+
+/**
+ * Returns a list of canvas layers, sorted by the layer state configuration.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.companionWindowId
+ * @returns {Array}
  */
 export const getSortedLayers = createSelector(
   [
@@ -58,16 +78,20 @@ export const getSortedLayers = createSelector(
 );
 
 /**
- * Get all the layer configuration for visible canvases
+ * Get all the layer configuration for visible canvases.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.windowId
+ * @returns {object}
  */
 export const getLayersForVisibleCanvases = createSelector(
   [
     getVisibleCanvasIds,
-    (state, { windowId }) => (canvasId => getLayers(state, { canvasId, windowId })),
+    getLayersForWindow,
   ],
-  (canvasIds, getLayersForCanvas) => (
+  (canvasIds, layers) => (
     canvasIds.reduce((acc, canvasId) => {
-      acc[canvasId] = getLayersForCanvas(canvasId);
+      acc[canvasId] = layers[canvasId];  // eslint-disable-line no-param-reassign
       return acc;
     }, {})
   ),

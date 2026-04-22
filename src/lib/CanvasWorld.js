@@ -1,5 +1,5 @@
 import normalizeUrl from 'normalize-url';
-import MiradorCanvas from './MiradorCanvas';
+import { getIiifResourceImageService } from './iiif';
 
 /**
  * CanvasWorld
@@ -9,11 +9,11 @@ export default class CanvasWorld {
    * @param {Array} canvases - Array of Manifesto:Canvas objects to create a
    * world from.
    */
-  constructor(canvases, layers, viewingDirection = 'left-to-right') {
-    this.canvases = canvases.map(c => new MiradorCanvas(c));
+  constructor(miradorCanvases, layers, viewingDirection = 'left-to-right') {
+    this.canvases = miradorCanvases;
     this.layers = layers;
     this.viewingDirection = viewingDirection;
-    this._canvasDimensions = null; // eslint-disable-line no-underscore-dangle
+    this._canvasDimensions = null;
   }
 
   /** */
@@ -23,8 +23,8 @@ export default class CanvasWorld {
 
   /** */
   get canvasDimensions() {
-    if (this._canvasDimensions) { // eslint-disable-line no-underscore-dangle
-      return this._canvasDimensions; // eslint-disable-line no-underscore-dangle
+    if (this._canvasDimensions) {
+      return this._canvasDimensions;
     }
 
     const [dirX, dirY] = this.canvasDirection;
@@ -38,7 +38,7 @@ export default class CanvasWorld {
       let canvasHeight = 0;
       let canvasWidth = 0;
 
-      if (!isNaN(canvas.aspectRatio)) {
+      if (!Number.isNaN(canvas.aspectRatio)) {
         if (dirY === 0) {
           // constant height
           canvasHeight = scale;
@@ -66,7 +66,7 @@ export default class CanvasWorld {
     const worldHeight = dirY === 0 ? scale : Math.abs(incY);
     const worldWidth = dirX === 0 ? scale : Math.abs(incX);
 
-    this._canvasDimensions = canvasDims // eslint-disable-line no-underscore-dangle
+    this._canvasDimensions = canvasDims
       .reduce((acc, dims) => {
         acc.push({
           ...dims,
@@ -77,7 +77,7 @@ export default class CanvasWorld {
         return acc;
       }, []);
 
-    return this._canvasDimensions; // eslint-disable-line no-underscore-dangle
+    return this._canvasDimensions;
   }
 
   /**
@@ -136,18 +136,17 @@ export default class CanvasWorld {
   /** Get the IIIF content resource for an image */
   contentResource(infoResponseId) {
     const miradorCanvas = this.canvases.find(c => c.imageServiceIds.some(id => (
-      normalizeUrl(id, { stripAuthentication: false })
+      id && infoResponseId && normalizeUrl(id, { stripAuthentication: false })
         === normalizeUrl(infoResponseId, { stripAuthentication: false }))));
     if (!miradorCanvas) return undefined;
     return miradorCanvas.imageResources
       .find(r => (
-        normalizeUrl(r.getServices()[0].id, { stripAuthentication: false })
+        normalizeUrl(getIiifResourceImageService(r).id, { stripAuthentication: false })
         === normalizeUrl(infoResponseId, { stripAuthentication: false })));
   }
 
   /** @private */
   getLayerMetadata(contentResource) {
-    if (!this.layers) return undefined;
     const miradorCanvas = this.canvases.find(c => (
       c.imageResources.find(r => r.id === contentResource.id)
     ));
@@ -156,15 +155,17 @@ export default class CanvasWorld {
 
     const resourceIndex = miradorCanvas.imageResources
       .findIndex(r => r.id === contentResource.id);
+    const resource = miradorCanvas.imageResources
+      .find(r => r.id === contentResource.id);
 
-    const layer = this.layers[miradorCanvas.canvas.id];
-    const imageResourceLayer = layer && layer[contentResource.id];
+    const layer = this.layers && this.layers[miradorCanvas.canvas.id];
+    const imageResourceLayer = (layer && layer[contentResource.id]) || {};
 
     return {
       index: resourceIndex,
       opacity: 1,
       total: miradorCanvas.imageResources.length,
-      visibility: true,
+      visibility: !!resource.preferred,
       ...imageResourceLayer,
     };
   }
@@ -183,7 +184,7 @@ export default class CanvasWorld {
     const layer = this.getLayerMetadata(contentResource);
     if (!layer) return undefined;
 
-    return layer.total - layer.index - 1;
+    return layer.index;
   }
 
   /**
@@ -198,13 +199,18 @@ export default class CanvasWorld {
     };
   }
 
+  /** */
+  hasDimensions() {
+    return this.canvasDimensions.length > 0;
+  }
+
   /**
    * worldBounds - calculates the "World" bounds. World in this case is canvases
    * lined up horizontally starting from left to right.
    */
   worldBounds() {
-    const worldWidth = Math.max(...this.canvasDimensions.map(c => c.x + c.width));
-    const worldHeight = Math.max(...this.canvasDimensions.map(c => c.y + c.height));
+    const worldWidth = Math.max(0, ...this.canvasDimensions.map(c => c.x + c.width));
+    const worldHeight = Math.max(0, ...this.canvasDimensions.map(c => c.y + c.height));
 
     return [
       0,

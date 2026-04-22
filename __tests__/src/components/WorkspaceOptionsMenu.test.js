@@ -1,42 +1,74 @@
-import React from 'react';
-import { shallow } from 'enzyme';
-import MenuItem from '@material-ui/core/MenuItem';
-import WorkspaceExport from '../../../src/containers/WorkspaceExport';
-import WorkspaceImport from '../../../src/containers/WorkspaceImport';
+import { render, screen } from '@tests/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import { WorkspaceOptionsMenu } from '../../../src/components/WorkspaceOptionsMenu';
 
-/** Utility helper to create a shallow wrapper around WorkspaceOptionsButton */
-function createShallow(props) {
-  return shallow(
-    <WorkspaceOptionsMenu
-      containerId="mirador"
-      handleClose={() => {}}
-      t={k => k}
-      {...props}
-    />,
+/** create wrapper */
+function Subject({ ...props }) {
+  return (
+    <div>
+      <WorkspaceOptionsMenu
+        handleClose={() => {}}
+        {...props}
+      />
+      ,
+      ,
+    </div>
+  );
+}
+
+/** create anchor element */
+function createAnchor() {
+  return render(
+    <button type="button" data-testid="menu-trigger-button">Button</button>,
   );
 }
 
 describe('WorkspaceOptionsMenu', () => {
-  let wrapper;
-
-  it('toggles the relevant section with each MenuItem click', () => {
-    wrapper = createShallow();
-
-    expect(wrapper.find(MenuItem).length).toEqual(2);
-    expect(wrapper.find(WorkspaceExport).length).toEqual(0);
-    expect(wrapper.find(WorkspaceImport).length).toEqual(0);
-
-    wrapper.find(MenuItem).at(0).simulate('click');
-    expect(wrapper.find(WorkspaceExport).length).toEqual(1);
-    wrapper.find(MenuItem).at(1).simulate('click');
-    expect(wrapper.find(WorkspaceImport).length).toEqual(1);
+  let user;
+  beforeEach(() => {
+    createAnchor();
+    user = userEvent.setup();
   });
 
-  it('it passes a handleClose prop to the various components to that closes that will close the component', () => {
-    wrapper.setState({ exportWorkspace: { open: true } });
-    expect(wrapper.state().exportWorkspace.open).toBe(true);
-    wrapper.find(WorkspaceExport).props().handleClose();
-    expect(wrapper.state().exportWorkspace.open).toBe(false);
+  it('renders all needed elements when open', () => {
+    render(<Subject anchorEl={screen.getByTestId('menu-trigger-button')} open />);
+
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    const menuItems = screen.getAllByRole('menuitem');
+    expect(menuItems).toHaveLength(2);
+    expect(menuItems[0]).toHaveTextContent('Export workspace');
+    expect(menuItems[1]).toHaveTextContent('Import workspace');
+  });
+
+  it('does not display unless open', () => {
+    render(<Subject open={false} />);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('renders the export dialog when export option is clicked', async () => {
+    render(<Subject anchorEl={screen.getByTestId('menu-trigger-button')} open />);
+    expect(screen.queryByRole('heading', { name: 'Export workspace' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('menuitem', { name: 'Export workspace' }));
+    expect(screen.getByRole('heading', { name: 'Export workspace' })).toBeInTheDocument();
+  });
+
+  it('renders the import dialog when import option is clicked', async () => {
+    render(<Subject anchorEl={screen.getByTestId('menu-trigger-button')} open />);
+    expect(screen.queryByRole('heading', { name: 'Import workspace' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('menuitem', { name: 'Import workspace' }));
+    expect(screen.getByRole('heading', { name: 'Import workspace' })).toBeInTheDocument();
+  });
+
+  it('fires the correct callbacks on menu close', async () => {
+    const handleClose = vi.fn();
+    render(<Subject anchorEl={screen.getByTestId('menu-trigger-button')} handleClose={handleClose} open />);
+
+    // click a menu item should close the menu
+    const menuItems = screen.getAllByRole('menuitem');
+    await user.click(menuItems[0]);
+    expect(handleClose).toHaveBeenCalledTimes(1);
   });
 });

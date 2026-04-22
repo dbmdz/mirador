@@ -1,7 +1,5 @@
 import { compose } from 'redux';
 import { connect } from 'react-redux';
-import { withTranslation } from 'react-i18next';
-import { withStyles } from '@material-ui/core/styles';
 import { withPlugins } from '../extend/withPlugins';
 import { SearchHit } from '../components/SearchHit';
 import * as actions from '../state/actions';
@@ -24,11 +22,15 @@ const mapStateToProps = (state, {
 }) => {
   const realAnnoId = annotationId || hit.annotations[0];
   const hitAnnotation = getResourceAnnotationForSearchHit(
-    state, { annotationUri: realAnnoId, companionWindowId, windowId },
+    state,
+    {
+      annotationUri: realAnnoId,
+      companionWindowId,
+      windowId,
+    },
   );
-  const annotationLabel = getResourceAnnotationLabel(
-    state, { annotationUri: realAnnoId, companionWindowId, windowId },
-  );
+
+  const annotationLabel = getResourceAnnotationLabel(state, { annotationUri: realAnnoId, companionWindowId, windowId });
   const selectedCanvasIds = getVisibleCanvasIds(state, { windowId });
 
   const selectedContentSearchAnnotationsIds = getSelectedContentSearchAnnotationIds(state, {
@@ -40,7 +42,7 @@ const mapStateToProps = (state, {
   const allAnnoIds = [annotationId, ...hit.annotations];
 
   return {
-    adjacent: selectedCanvasIds.includes(hitAnnotation.targetId),
+    adjacent: selectedCanvasIds.includes(hitAnnotation?.targetId),
     annotation: hitAnnotation,
     annotationId: realAnnoId,
     annotationLabel: annotationLabel[0],
@@ -66,61 +68,8 @@ const mapDispatchToProps = (dispatch, { windowId }) => ({
   ),
 });
 
-/** */
-const styles = theme => ({
-  adjacent: {},
-  focused: {},
-  hitCounter: {
-    ...theme.typography.subtitle2,
-    backgroundColor: theme.palette.hitCounter.default,
-    height: 30,
-    marginRight: theme.spacing(1),
-    verticalAlign: 'inherit',
-  },
-  inlineButton: {
-    '& span': {
-      lineHeight: '1.5em',
-    },
-    margin: 0,
-    padding: 0,
-    textTransform: 'none',
-  },
-  listItem: {
-    '&$adjacent': {
-      '& $hitCounter': {
-        backgroundColor: theme.palette.highlights.secondary,
-      },
-      '&$windowSelected': {
-        '& $hitCounter': {
-          backgroundColor: theme.palette.highlights.primary,
-        },
-      },
-    },
-    '&$windowSelected': {
-      '& $hitCounter': {
-        backgroundColor: theme.palette.highlights.primary,
-      },
-      '&$focused': {
-        '&:hover': {
-          backgroundColor: 'inherit',
-        },
-        backgroundColor: 'inherit',
-      },
-    },
-    borderBottom: `0.5px solid ${theme.palette.divider}`,
-    paddingRight: 8,
-  },
-  selected: {},
-  subtitle: {
-    marginBottom: theme.spacing(1.5),
-  },
-  windowSelected: {},
-});
-
 const enhance = compose(
   connect(mapStateToProps, mapDispatchToProps),
-  withStyles(styles),
-  withTranslation(),
   withPlugins('SearchHit'),
 );
 

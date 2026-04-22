@@ -1,5 +1,5 @@
 import configureMockStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 
 import * as actions from '../../../src/state/actions';
 import ActionTypes from '../../../src/state/actions/action-types';
@@ -7,9 +7,9 @@ import ActionTypes from '../../../src/state/actions/action-types';
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
 
-jest.mock('../../../src/state/selectors', () => ({
+vi.mock('../../../src/state/selectors', () => ({
   getCanvasGrouping: (state, { canvasId }) => [{ id: canvasId }],
-  getConfig: jest.fn((state) => {
+  getConfig: vi.fn((state) => {
     const osdConfig = { osdConfig: { preserveViewport: true } };
     return osdConfig;
   }),

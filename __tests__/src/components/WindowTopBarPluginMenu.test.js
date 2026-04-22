@@ -1,74 +1,85 @@
+import { render, screen } from '@tests/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { shallow } from 'enzyme';
-import Menu from '@material-ui/core/Menu';
-import MiradorMenuButton from '../../../src/containers/MiradorMenuButton';
-import { PluginHook } from '../../../src/components/PluginHook';
+
 import { WindowTopBarPluginMenu } from '../../../src/components/WindowTopBarPluginMenu';
+import { usePlugins } from '../../../src/extend/usePlugins';
+
+vi.mock('../../../src/extend/usePlugins');
 
 /** create wrapper */
-function createWrapper(props) {
-  return shallow(
+function Subject({ ...props }) {
+  return (
     <WindowTopBarPluginMenu
-      containerId="abc123-container"
-      t={k => k}
       windowId="abc123"
       {...props}
-    />,
+    />
   );
+}
+// needs to be a non-functional component to accept forwardRef the way we have it set up
+/**  */
+class mockComponentA extends React.Component {
+  /**  */
+  render() {
+    return (
+      <div data-testid="testA" />
+    );
+  }
 }
 
 describe('WindowTopBarPluginMenu', () => {
-  let wrapper;
-
   describe('when there are no plugins present', () => {
-    it('renders a Fragment (and no Button/Menu/PluginHook)', () => {
-      wrapper = createWrapper();
-      expect(wrapper.find('Fragment').length).toBe(1);
-      expect(wrapper.find(Menu).length).toBe(0);
-      expect(wrapper.find(MiradorMenuButton).length).toBe(0);
-      expect(wrapper.find(PluginHook).length).toBe(0);
+    it('renders nothing (and no Button/Menu/PluginHook)', () => {
+      vi.mocked(usePlugins).mockReturnValue({ PluginComponents: [] });
+      render(<Subject />);
+      expect(screen.queryByTestId('testA')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Window options' })).not.toBeInTheDocument();
     });
   });
 
   describe('when there are plugins present', () => {
-    const PluginComponents = ['Plugin1', 'Plugin2'];
+    let user;
 
-    it('renders the Button, Menu, and PluginHook', () => {
-      wrapper = createWrapper({ PluginComponents });
-
-      expect(wrapper.find(Menu).length).toBe(1);
-      expect(wrapper.find(MiradorMenuButton).length).toBe(1);
-      expect(wrapper.find(PluginHook).length).toBe(1);
+    beforeEach(() => {
+      user = userEvent.setup();
+      vi.mocked(usePlugins).mockReturnValue({ PluginComponents: [mockComponentA] });
+      render(<Subject />);
     });
 
-    it('the Menu is controlled by the Button clicks/local state', () => {
-      wrapper = createWrapper({ PluginComponents });
-
-      expect(wrapper.find(Menu).props().open).toBe(false);
-      expect(wrapper.state().anchorEl).toBeNull();
-
-      wrapper.find(MiradorMenuButton).simulate('click', { currentTarget: 'Button' });
-      expect(wrapper.find(Menu).props().open).toBe(true);
-      expect(wrapper.state().anchorEl).toEqual('Button');
+    it('renders the Button', async () => {
+      expect(screen.getByRole('button', { name: 'Window options' })).toBeInTheDocument();
     });
 
-    it('the onClose prop of the Menu updates the open prop/state', () => {
-      wrapper = createWrapper({ PluginComponents });
-      wrapper.setState({ anchorEl: 'Button' });
-      expect(wrapper.find(Menu).props().open).toBe(true);
+    it('the Menu is controlled by the Button clicks', async () => {
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('testA')).not.toBeInTheDocument();
 
-      wrapper.find(Menu).props().onClose();
-      expect(wrapper.find(Menu).props().open).toBe(false);
-      expect(wrapper.state().anchorEl).toBeNull();
+      // open
+      await user.click(screen.getByRole('button', { name: 'Window options' }));
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('pluginTarget prop', () => {
+    it('passes the pluginTarget to usePlugins', () => {
+      const spy = vi.mocked(usePlugins);
+      spy.mockReturnValue({ PluginComponents: [mockComponentA] });
+
+      render(<Subject pluginTarget="CustomPluginTarget" />);
+
+      expect(spy).toHaveBeenCalledWith('CustomPluginTarget');
     });
 
-    it('explicitly passes the local close handler to the PluginHook', () => {
-      wrapper = createWrapper({ PluginComponents });
+    it('defaults pluginTarget to WindowTopBarPluginMenu if not provided', () => {
+      const spy = vi.mocked(usePlugins);
+      spy.mockReturnValue({ PluginComponents: [mockComponentA] });
 
-      wrapper.setState({ anchorEl: 'Button' });
-      expect(wrapper.state().anchorEl).toEqual('Button');
-      expect(wrapper.find(PluginHook).props().handleClose());
-      expect(wrapper.state().anchorEl).toBeNull();
+      render(<Subject />);
+
+      expect(spy).toHaveBeenCalledWith('WindowTopBarPluginMenu');
     });
   });
 });

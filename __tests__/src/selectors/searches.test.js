@@ -10,19 +10,15 @@ import {
   getNextSearchId,
 } from '../../../src/state/selectors';
 
-jest.mock('../../../src/state/selectors/canvases', () => {
-  const originalModule = jest.requireActual('../../../src/state/selectors/canvases');
-
-  return {
-    __esModule: true, // Use it when dealing with esModules
-    ...originalModule,
-    getCanvases: () => [
-      { id: 'http://example.com/iiif/canvas1' },
-      { id: 'http://example.com/iiif/canvas2' },
-      { id: 'http://example.com/iiif/canvas3' },
-    ],
-  };
-});
+vi.mock('../../../src/state/selectors/canvases', async (importOriginal) => ({
+  __esModule: true, // Use it when dealing with esModules
+  ...(await importOriginal()),
+  getCanvases: () => [
+    { id: 'http://example.com/iiif/canvas1' },
+    { id: 'http://example.com/iiif/canvas2' },
+    { id: 'http://example.com/iiif/canvas3' },
+  ],
+}));
 
 describe('getSearchQuery', () => {
   const companionWindowId = 'cwid';
@@ -309,9 +305,7 @@ describe('getResourceAnnotationForSearchHit', () => {
     };
 
     expect(
-      getResourceAnnotationForSearchHit(
-        state, { annotationUri: annoId, companionWindowId, windowId: 'a' },
-      ).resource['@id'],
+      getResourceAnnotationForSearchHit(state, { annotationUri: annoId, companionWindowId, windowId: 'a' }).resource['@id'],
     ).toEqual(annoId);
   });
 });
@@ -344,9 +338,7 @@ describe('getResourceAnnotationLabel', () => {
     };
 
     expect(
-      getResourceAnnotationLabel(
-        state, { annotationUri: annoId, companionWindowId, windowId: 'a' },
-      ),
+      getResourceAnnotationLabel(state, { annotationUri: annoId, companionWindowId, windowId: 'a' }),
     ).toEqual(['The Annotation Label']);
   });
 
@@ -369,9 +361,7 @@ describe('getResourceAnnotationLabel', () => {
     };
 
     expect(
-      getResourceAnnotationLabel(
-        state, { annotationUri: annoId, companionWindowId, windowId: 'a' },
-      ),
+      getResourceAnnotationLabel(state, { annotationUri: annoId, companionWindowId, windowId: 'a' }),
     ).toEqual([]);
   });
 });

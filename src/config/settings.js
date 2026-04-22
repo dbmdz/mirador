@@ -8,11 +8,13 @@ export default {
     height: 50,
     width: 50,
   },
+  // Override the default fallback image with a custom one for loading failures
+  // fallbackImage: 'path/to/your/custom/fallback.jpg',
   selectedTheme: 'light', // dark also available
   themes: {
     dark: {
       palette: {
-        type: 'dark',
+        mode: 'dark',
         primary: {
           main: '#4db6ac',
         },
@@ -28,13 +30,13 @@ export default {
     },
     light: {
       palette: {
-        type: 'light',
+        mode: 'light',
       }
     }
   },
   theme: { // Sets up a MaterialUI theme. See https://material-ui.com/customization/default-theme/
     palette: {
-      type: 'light',
+      mode: 'light',
       primary: {
         main: '#1967d2', // Controls the color of the Add button and current window indicator
       },
@@ -50,7 +52,8 @@ export default {
         main: '#b00020',
       },
       notification: { // Color used in MUI Badge dots
-        main: '#ffa224'
+        main: '#ffa224',
+        contrastText: '#ffa224',
       },
       hitCounter: {
         default: '#bdbdbd',
@@ -61,6 +64,7 @@ export default {
       },
       section_divider: 'rgba(0, 0, 0, 0.25)',
       annotations: {
+        chipBackground: '#e0e0e0',
         hidden: { globalAlpha: 0 },
         default: { strokeStyle: '#00BFFF', globalAlpha: 1 },
         hovered: { strokeStyle: '#BF00FF', globalAlpha: 1 },
@@ -167,51 +171,248 @@ export default {
       },
       useNextVariants: true // set so that console deprecation warning is removed
     },
-    overrides: {
+    components: {
+      MuiMenuItem: {
+        variants: [
+          {
+            props: { variant: 'multiline' },
+            style: { whiteSpace: 'normal' }
+          },
+        ]
+      },
+      CompanionWindow: {
+        styleOverrides: {
+          closeButton: {
+            order: 4,
+          },
+          contents: {
+            overflowY: 'auto',
+            wordBreak: 'break-word',
+          },
+          controls: ({ ownerState }) => ({
+            alignItems: 'center',
+            display: 'flex',
+            flexFlow: 'row wrap',
+            flexGrow: 1,
+            justifyContent: (ownerState?.position === 'bottom' || ownerState?.position === 'far-bottom') ? 'flex-end' : 'flex-start',
+            minHeight: 48,
+            order: 3
+          }),
+          positionButton: {
+            marginLeft: -16,
+            order: -100,
+            width: 24,
+          },
+          resize: ({ ownerState }) => ({
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 50,
+            minWidth: (ownerState?.position === 'left') ? 235 : 100,
+            position: 'relative',
+          }),
+          root: ({ ownerState }) => ({
+            boxShadow: 'none',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            ...(ownerState?.position === 'right' && {
+              borderLeft: '0.5px solid rgba(0, 0, 0, 0.125)'
+            }),
+            ...(ownerState?.position === 'left' && {
+              borderRight: '0.5px solid rgba(0, 0, 0, 0.125)'
+            }),
+            ...(ownerState?.position === 'bottom' && {
+              borderTop: '0.5px solid rgba(0, 0, 0, 0.125)'
+            }),
+          }),
+          title: ({ theme }) => ({
+            ...theme.typography.subtitle1,
+            alignSelf: 'center',
+            flexGrow: 1,
+            width: 160
+          }),
+          toolbar: ({ theme }) => ({
+            alignItems: 'flex-start',
+            backgroundColor: theme.palette.shades.light,
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            minHeight: 'max-content',
+            paddingInlineStart: '1rem',
+          }),
+        },
+      },
+      CompanionWindowSection: {
+        styleOverrides: {
+          root: {
+            borderBlockEnd: '.5px solid rgba(0, 0, 0, 0.25)'
+          },
+        },
+      },
+      IIIFHtmlContent: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            '& a': {
+              color: theme.palette.primary.main,
+              textDecoration: 'underline',
+            },
+          }),
+        },
+      },
+      IIIFThumbnail: {
+        styleOverrides: {
+          root: ({ ownerState }) => ({
+            ...(ownerState?.variant === 'inside' && {
+              display: 'inline-block',
+              height: 'inherit',
+              position: 'relative',
+            }),
+          }),
+          label: ({ ownerState }) => ({
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            lineHeight: '1.5em',
+            wordBreak: 'break-word',
+            ...(ownerState?.variant === 'inside' && {
+              color: '#ffffff',
+              WebkitLineClamp: 1,
+              whiteSpace: 'nowrap',
+            }),
+            ...(ownerState?.variant === 'outside' && {
+              display: '-webkit-box',
+              maxHeight: '3em',
+              MozBoxOrient: 'vertical',
+              WebkitLineClamp: 2,
+            }),
+            ...(ownerState?.variant === 'inside' && {
+              background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
+              bottom: '5px',
+              boxSizing: 'border-box',
+              left: '0px',
+              padding: '4px',
+              position: 'absolute',
+              width: '100%',
+            }),
+          }),
+          image: ({ ownerState }) => ({
+            ...(ownerState?.border && {
+              border: '1px solid rgba(0, 0, 0, 0.125)',
+            }),
+          })
+        }
+      },
+      ThemeIcon: {
+        styleOverrides: {
+          icon: ({ ownerState }) => ({
+            color: (ownerState?.value === 'dark' ? '#000000' : undefined)
+          }),
+        },
+      },
+      MuiAccordion: {
+        variants: [
+          {
+            props: { variant: 'compact' },
+            style: {
+              '& .MuiAccordionSummary-root': {
+                minHeight: 'unset',
+                padding: 0,
+              },
+              '& .MuiAccordionSummary-content': {
+                margin: 0,
+              },
+              '& .MuiAccordionDetails-root': {
+                padding: 0,
+              },
+            },
+          },
+        ],
+      },
+      MuiButton: {
+        styleOverrides: {
+          inlineText: {
+            lineHeight: '1.5em',
+            padding: 0,
+            textAlign: 'inherit',
+            textTransform: 'none',
+
+          },
+          inlineTextSecondary: ({ theme }) => ({
+            color: theme.palette.secondary.main,
+          }),
+        }
+      },
+      MuiButtonBase: {
+        defaultProps: {
+          disableTouchRipple: true,
+        },
+      },
+      MuiDialog: {
+        variants: [
+          {
+            props: { variant: 'contained' },
+            style: {
+              position: 'absolute',
+              '& .MuiBackdrop-root': {
+                position: 'absolute'
+              }
+            },
+          }
+        ]
+      },
+      MuiFab: {
+        styleOverrides: {
+          root: {
+            transition: 'none',
+          }
+        },
+      },
+      MuiLink: {
+        defaultProps: {
+          underline: 'always'
+        },
+      },
       MuiListSubheader: {
-        root: {
-          '&[role="presentation"]:focus': {
-            outline: 0,
+        styleOverrides: {
+          root: {
+            '&[role="presentation"]:focus': {
+              outline: 0,
+            },
           },
         },
       },
       MuiTooltip: { // Overridden from https://github.com/mui-org/material-ui/blob/master/packages/material-ui/src/Tooltip/Tooltip.js#L40-L70
-        tooltipPlacementLeft: {
-          ['@media (min-width:600px)']: {
-            margin: 0,
+        styleOverrides: {
+          tooltipPlacementLeft: {
+            ['@media (min-width:600px)']: {
+              margin: '0 !important',
+            },
           },
-        },
-        tooltipPlacementRight: {
-          ['@media (min-width:600px)']: {
-            margin: 0,
+          tooltipPlacementRight: {
+            ['@media (min-width:600px)']: {
+              margin: '0 !important',
+            },
           },
-        },
-        tooltipPlacementTop: {
-          ['@media (min-width:600px)']: {
-            margin: 0,
+          tooltipPlacementTop: {
+            ['@media (min-width:600px)']: {
+              margin: '0 !important',
+            },
           },
-        },
-        tooltipPlacementBottom: {
-          ['@media (min-width:600px)']: {
-            margin: 0,
+          tooltipPlacementBottom: {
+            ['@media (min-width:600px)']: {
+              margin: '0 !important',
+            },
           },
         },
       },
       MuiTouchRipple: {
-        childPulsate: {
-          animation: 'none',
+        styleOverrides: {
+          childPulsate: {
+            animation: 'none',
+          },
+          rippleVisible: {
+            animation: 'none',
+          },
         },
-        rippleVisible: {
-          animation: 'none',
-        },
-      },
-    },
-    props: {
-      MuiButtonBase: {
-        disableTouchRipple: true,
-      },
-      MuiLink: {
-        underline: 'always'
       },
     },
   },
@@ -223,9 +424,11 @@ export default {
     et: 'Eesti',
     fa: 'فارسی',
     fr: 'Français',
+    hr: 'Hrvatski',
     ja: '日本語',
     kr: '한국어',
     lt: 'Lietuvių',
+    hu: 'Magyar',
     nl: 'Nederlands',
     'nb-NO': 'Norwegian Bokmål',
     pl: 'Polski',
@@ -240,7 +443,9 @@ export default {
   },
   annotations: {
     htmlSanitizationRuleSet: 'iiif', // See src/lib/htmlRules.js for acceptable values
-    filteredMotivations: ['oa:commenting', 'oa:tagging', 'sc:painting', 'commenting', 'tagging'],
+    // filteredMotivations: if empty, all annotation motivations will be shown.
+    // Otherwise, only annotations with motivations listed in the array will be shown.
+    filteredMotivations: [],
   },
   createGenerateClassNameOptions: { // Options passed directly to createGenerateClassName in Material-UI https://material-ui.com/styles/api/#creategenerateclassname-options-class-name-generator
     productionPrefix: 'mirador',
@@ -303,6 +508,7 @@ export default {
       manifestId: 'https://iiif.harvardartmuseums.org/manifests/object/299843',
       canvasId: 'https://iiif.harvardartmuseums.org/manifests/object/299843/page_2',
       thumbnailNavigationPosition: 'far-bottom',
+      maximized: false,
     }
     // ../state/actions/window.js `defaultOptions`
     // ../lib/MiradorViewer.js `windowAction`
@@ -315,17 +521,18 @@ export default {
     defaultPosition: 'off', // Which position for the thumbnail navigation to be be displayed. Other possible values are "far-bottom" or "far-right"
     displaySettings: true, // Display the settings for this in WindowTopMenu
     height: 130, // height of entire ThumbnailNavigation area when position is "far-bottom"
+    showThumbnailLabels: true, // Configure if thumbnail labels should be displayed
     width: 100, // width of one canvas (doubled for book view) in ThumbnailNavigation area when position is "far-right"
   },
   workspace: {
-    draggingEnabled: true,
     allowNewWindows: true,
-    id: uuid(),
-    isWorkspaceAddVisible: false, // Catalog/Workspace add window feature visible by default
+    draggingEnabled: true,
     exposeModeOn: false, // unused?
     height: 5000, // height of the elastic mode's virtual canvas
-    showZoomControls: false, // Configure if zoom controls should be displayed by default
-    type: 'mosaic', // Which workspace type to load by default. Other possible values are "elastic". If "mosaic" or "elastic" are not selected no worksapce type will be used.
+    id: uuid(),
+    isWorkspaceAddVisible: false, // Catalog/Workspace add window feature visible by default
+    showZoomControls: true, // Configure if zoom controls should be displayed by default
+    type: 'mosaic', // Which workspace type to load by default. Other possible values are "elastic". If "mosaic" or "elastic" are not selected no workspace type will be used.
     viewportPosition: { // center coordinates for the elastic mode workspace
       x: 0,
       y: 0,
@@ -343,8 +550,10 @@ export default {
     alwaysBlend: false,
     blendTime: 0.1,
     preserveImageSizeOnResize: true,
-    preserveViewport: true,
+    preserveViewport: false,
     showNavigationControl: false,
+    zoomPerClick: 1, // disable zoom-to-click
+    zoomPerDoubleClick: 2.0
   },
   export: {
     catalog: true,
@@ -377,5 +586,6 @@ export default {
       { profile: 'http://iiif.io/api/auth/0/clickthrough' },
       { profile: 'http://iiif.io/api/auth/0/login' }
     ]
-  }
+  },
+  labelValueJoiner: ', '
 };

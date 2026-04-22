@@ -5,23 +5,37 @@ import AnnotationList from '../../lib/AnnotationList';
 import { getCanvas, getCanvases } from './canvases';
 import { getWindow } from './getters';
 import { getManifestLocale } from './manifests';
-import { miradorSlice } from './utils';
+import { miradorSlice, EMPTY_ARRAY, EMPTY_OBJECT } from './utils';
 
-/** Get searches from state */
+/**
+ *  Get searches from state.
+ */
 const getSearches = (state) => miradorSlice(state).searches;
 
+/**
+ * Returns the search result for a specific window.
+ * @param {object} state
+ * @param {string} windowId
+ * @returns {object}
+ */
 export const getSearchForWindow = createSelector(
   [
     (state, { windowId }) => windowId,
     getSearches,
   ],
   (windowId, searches) => {
-    if (!windowId || !searches) return {};
+    if (!windowId || !searches) return EMPTY_OBJECT;
 
     return searches[windowId];
   },
 );
 
+/**
+ * Returns the search result for a specific companion window.
+ * @param {object} state
+ * @param {string} companionWindowId
+ * @returns {object|undefined}
+ */
 const getSearchForCompanionWindow = createSelector(
   [
     getSearchForWindow,
@@ -33,16 +47,27 @@ const getSearchForCompanionWindow = createSelector(
   },
 );
 
+/**
+ * Returns an array of search responses for a specific companion window.
+ * @param {object} state
+ * @returns {Array}
+ */
 const getSearchResponsesForCompanionWindow = createSelector(
   [
     getSearchForCompanionWindow,
   ],
   (results) => {
-    if (!results) return [];
+    if (!results) return EMPTY_ARRAY;
     return Object.values(results.data);
   },
 );
 
+/**
+ * Returns the search query for a specific companion window.
+ * @param {object} state
+ * @param {string} windowId
+ * @returns {string|undefined}
+ */
 export const getSearchQuery = createSelector(
   [
     getSearchForCompanionWindow,
@@ -50,6 +75,11 @@ export const getSearchQuery = createSelector(
   results => results && results.query,
 );
 
+/**
+ * Returns if search response for a companion window is fetching.
+ * @param {object} state
+ * @returns {boolean}
+ */
 export const getSearchIsFetching = createSelector(
   [
     getSearchResponsesForCompanionWindow,
@@ -57,6 +87,12 @@ export const getSearchIsFetching = createSelector(
   results => results.some(result => result.isFetching),
 );
 
+/**
+ * Returns the total number of search results for a companion window.
+ * @param {object} state
+ * @param {string} windowId
+ * @returns {number|undefined}
+ */
 export const getSearchNumTotal = createSelector(
   [
     getSearchForCompanionWindow,
@@ -73,6 +109,12 @@ export const getSearchNumTotal = createSelector(
   },
 );
 
+/**
+ * Returns the Id of the next search.
+ * @param {object} state
+ * @param {string} windowId
+ * @returns {number|undefined}
+ */
 export const getNextSearchId = createSelector(
   [
     getSearchForCompanionWindow,
@@ -98,28 +140,43 @@ const getSearchHitsForCompanionWindow = createSelector(
     getSearchResponsesForCompanionWindow,
   ],
   results => flatten(results.map((result) => {
-    if (!result || !result.json || result.isFetching || !result.json.hits) return [];
+    if (!result || !result.json || result.isFetching || !result.json.hits) return EMPTY_ARRAY;
 
     return result.json.hits;
   })),
 );
 
+export const getSearchAnnotationsForCompanionWindow = createSelector(
+  [
+    getSearchResponsesForCompanionWindow,
+  ],
+  results => results && searchResultsToAnnotation(results),
+);
+
+/**
+ * Returns sorted search hits based on canvas order.
+ * @param {object} state
+ * @param {string} manifestId
+ * @returns {Array}
+ */
 export const getSortedSearchHitsForCompanionWindow = createSelector(
   [
     getSearchHitsForCompanionWindow,
     getCanvases,
-    (state, { companionWindowId, windowId }) => annotationUri => getResourceAnnotationForSearchHit(
-      state, { annotationUri, companionWindowId, windowId },
-    ),
+    getSearchAnnotationsForCompanionWindow,
   ],
-  (searchHits, canvases, annotationForSearchHit) => {
-    if (!canvases || canvases.length === 0) return [];
-    if (!searchHits || searchHits.length === 0) return [];
+  (searchHits, canvases, annotation) => {
+    if (!canvases || canvases.length === 0) return EMPTY_ARRAY;
+    if (!searchHits || searchHits.length === 0) return EMPTY_ARRAY;
     const canvasIds = canvases.map(canvas => canvas.id);
 
     return [].concat(searchHits).sort((a, b) => {
-      const hitA = annotationForSearchHit(a.annotations[0]);
-      const hitB = annotationForSearchHit(b.annotations[0]);
+      const hitA = annotation.resources.find(
+        r => r.id === a.annotations[0],
+      );
+      const hitB = annotation.resources.find(
+        r => r.id === b.annotations[0],
+      );
       return canvasIds.indexOf(hitA.targetId) - canvasIds.indexOf(hitB.targetId);
     });
   },
@@ -142,19 +199,15 @@ const searchResultsToAnnotation = (results) => {
   };
 };
 
-export const getSearchAnnotationsForCompanionWindow = createSelector(
-  [
-    getSearchResponsesForCompanionWindow,
-  ],
-  results => results && searchResultsToAnnotation(results),
-);
-
-/** */
+/**
+ * Sorts search annotations based on canvas order.
+ * @returns {Array}
+ */
 export function sortSearchAnnotationsByCanvasOrder(searchAnnotations, canvases) {
   if (!searchAnnotations
       || !searchAnnotations.resources
-      || searchAnnotations.length === 0) return [];
-  if (!canvases || canvases.length === 0) return [];
+      || searchAnnotations.length === 0) return EMPTY_ARRAY;
+  if (!canvases || canvases.length === 0) return EMPTY_ARRAY;
   const canvasIds = canvases.map(canvas => canvas.id);
 
   return [].concat(searchAnnotations.resources).sort(
@@ -162,6 +215,12 @@ export function sortSearchAnnotationsByCanvasOrder(searchAnnotations, canvases) 
   );
 }
 
+/**
+ * Returns sorted search annotations for companion window.
+ * @param {object} state
+ * @param {string} companionWindowId
+ * @returns {Array}
+ */
 export const getSortedSearchAnnotationsForCompanionWindow = createSelector(
   [
     getSearchAnnotationsForCompanionWindow,
@@ -170,18 +229,30 @@ export const getSortedSearchAnnotationsForCompanionWindow = createSelector(
   (searchAnnotations, canvases) => sortSearchAnnotationsByCanvasOrder(searchAnnotations, canvases),
 );
 
+/**
+ * Returns sorted search annotations for window.
+ * @param {object} state
+ * @param {string} windowId
+ * @returns {Array}
+ */
 export const getSearchAnnotationsForWindow = createSelector(
   [
     getSearchForWindow,
   ],
   (results) => {
-    if (!results) return [];
+    if (!results) return EMPTY_ARRAY;
     const data = Object.values(results).map(r => Object.values(r.data));
 
     return data.map(d => searchResultsToAnnotation(d)).filter(a => a.resources.length > 0);
   },
 );
 
+/**
+ * Returns ids of selected content search annotations.
+ * @param {object} state
+ * @param {string} windowId
+ * @returns {Array}
+ */
 export const getSelectedContentSearchAnnotationIds = createSelector(
   [
     getWindow,
@@ -191,6 +262,12 @@ export const getSelectedContentSearchAnnotationIds = createSelector(
     || [],
 );
 
+/**
+ * Returns resource annotations for search hit.
+ * @param {object} state
+ * @param {string} windowId
+ * @returns {Array}
+ */
 export const getResourceAnnotationForSearchHit = createSelector(
   [
     getSearchAnnotationsForCompanionWindow,
@@ -201,6 +278,12 @@ export const getResourceAnnotationForSearchHit = createSelector(
   ),
 );
 
+/**
+ * Returns annotation label.
+ * @param {object} state
+ * @param {string} windowId
+ * @returns {Array}
+ */
 export const getResourceAnnotationLabel = createSelector(
   [
     getResourceAnnotationForSearchHit,
@@ -209,9 +292,9 @@ export const getResourceAnnotationLabel = createSelector(
   (resourceAnnotation, locale) => {
     if (
       !(resourceAnnotation && resourceAnnotation.resource && resourceAnnotation.resource.label)
-    ) return [];
+    ) return EMPTY_ARRAY;
 
-    return PropertyValue.parse(resourceAnnotation.resource.label, locale).getValues();
+    return PropertyValue.parse(resourceAnnotation.resource.label).getValues(locale);
   },
 );
 
@@ -226,12 +309,16 @@ const getAnnotationById = createSelector(
   },
 );
 
+/**
+ * Returns annotation label.
+ * @param {object} state
+ * @param {string} windowId
+ * @returns {Array}
+ */
 export const getCanvasForAnnotation = createSelector(
   [
     getAnnotationById,
-    (state, { windowId }) => canvasId => getCanvas(
-      state, { canvasId, windowId },
-    ),
+    (state, { windowId }) => canvasId => getCanvas(state, { canvasId, windowId }),
   ],
   (annotation, getCanvasById) => {
     const canvasId = annotation && annotation.targetId;

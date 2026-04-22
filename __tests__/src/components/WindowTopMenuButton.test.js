@@ -1,63 +1,52 @@
-import React from 'react';
-import { shallow } from 'enzyme';
-import WindowTopMenu from '../../../src/containers/WindowTopMenu';
+import { render, screen } from '@tests/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import { WindowTopMenuButton } from '../../../src/components/WindowTopMenuButton';
-import MiradorMenuButton from '../../../src/containers/MiradorMenuButton';
 
 /** create wrapper */
-function createWrapper(props) {
-  return shallow(
+function Subject({ ...props }) {
+  return (
     <WindowTopMenuButton
       windowId="xyz"
+      data-testid="test"
       classes={{ ctrlBtnSelected: 'ctrlBtnSelected' }}
-      t={str => str}
       {...props}
-    />,
+    />
   );
 }
 
 describe('WindowTopMenuButton', () => {
-  it('renders all needed elements', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.find(MiradorMenuButton).length).toBe(1);
-    expect(wrapper.find(WindowTopMenu).length).toBe(1);
+  let user;
+  beforeEach(() => {
+    user = userEvent.setup();
   });
 
-  it('passes correct props to <WindowTopMenu/>', () => {
-    const wrapper = createWrapper();
-    const props = wrapper.find(WindowTopMenu).first().props();
-    const { handleMenuClose } = wrapper.instance();
-    expect(props.windowId).toBe('xyz');
-    expect(props.anchorEl).toBe(null);
-    expect(props.handleClose).toBe(handleMenuClose);
+  it('renders the button element', () => {
+    render(<Subject />);
+    expect(screen.getByLabelText('Window views & thumbnail display')).toBeInTheDocument();
   });
 
-  it('passes correct props to <MiradorMenuButton />', () => {
-    const wrapper = createWrapper();
-    const props = wrapper.find(MiradorMenuButton).first().props();
-    const { handleMenuClick } = wrapper.instance();
-    expect(props.onClick).toBe(handleMenuClick);
+  it('toggles open/close of <WindowTopMenu/> when clicked', async () => {
+    render(<Subject />);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Window views & thumbnail display'));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    // click something else to close the menu (the windowMenu button is hidden at this point)
+    await user.click(screen.getAllByRole('menuitemradio')[0]);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
-  it('toggles anchor element in <WindowTopMenu/> on menu open/close', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.find(WindowTopMenu).first().props().anchorEl).toBe(null);
-
-    wrapper.instance().handleMenuClick({ currentTarget: 'bubu' });
-    expect(wrapper.find(WindowTopMenu).first().props().anchorEl).toBe('bubu');
-
-    wrapper.instance().handleMenuClose();
-    expect(wrapper.find(WindowTopMenu).first().props().anchorEl).toBe(null);
+  it('the open attribute of the button is null without being clicked', async () => {
+    render(<Subject />);
+    // without a click, the button is not open and therefore doesn't have aria-owns attr
+    expect(screen.getByLabelText('Window views & thumbnail display')).not.toHaveAttribute('aria-owns'); // eslint-disable-line testing-library/no-node-access
   });
 
-  it('the button has a class indicating that it is "selected" once it is clicked', () => {
-    const wrapper = createWrapper();
-    const menuButton = wrapper.find(MiradorMenuButton).first();
-
-    expect(wrapper.find(MiradorMenuButton).first().props().className).toEqual(null);
-    menuButton.props().onClick({ currentTarget: 'anElement' });
-    expect(wrapper.find(MiradorMenuButton).first().props().className).toEqual('ctrlBtnSelected');
-    menuButton.props().onClick({});
-    expect(wrapper.find(MiradorMenuButton).first().props().className).toEqual(null);
+  it('the open attribute of the button is applied once it is clicked', async () => {
+    render(<Subject />);
+    await user.click(screen.getByLabelText('Window views & thumbnail display'));
+    // when 'open' is true, aria-owns is set to the id of the window
+    expect(screen.getByLabelText('Window views & thumbnail display')).toHaveAttribute('aria-owns'); // eslint-disable-line testing-library/no-node-access
   });
 });

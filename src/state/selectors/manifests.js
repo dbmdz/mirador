@@ -1,73 +1,88 @@
 import { createSelector } from 'reselect';
-import createCachedSelector from 're-reselect';
-import { PropertyValue, Utils } from 'manifesto.js';
-import getThumbnail from '../../lib/ThumbnailFactory';
+import { PropertyValue, Utils, Resource } from 'manifesto.js';
 import asArray from '../../lib/asArray';
-import { getCompanionWindow } from './companionWindows';
+import { getCompanionWindowLocale } from './companionWindows';
 import { getManifest } from './getters';
 import { getConfig } from './config';
+import { getThumbnailFactory } from './thumbnails';
 
 /** */
 function createManifestoInstance(json, locale) {
   if (!json) return undefined;
-  const manifestoObject = Utils.parseManifest(json, locale ? { locale } : undefined);
-  // Local patching of Manifesto so that when its a Collection, it behaves similarly
-  if (typeof manifestoObject.getSequences != 'function') {
-    manifestoObject.getSequences = () => [];
+  // Use structuredClone to create a deep copy and prevent Manifesto from mutating the json
+  const manifestoObject = Utils.parseManifest(structuredClone(json), locale ? { locale } : undefined);
+  if (manifestoObject) {
+    // Local patching of Manifesto so that when its a Collection, it behaves similarly
+    if (typeof manifestoObject.getSequences != 'function') {
+      manifestoObject.getSequences = () => [];
+    }
+    return manifestoObject;
   }
-  return manifestoObject;
+  return undefined;
 }
 
 /** */
-const getLocale = createSelector(
+export const getLocale = createSelector(
   [
-    getCompanionWindow,
+    getCompanionWindowLocale,
     getConfig,
+    (state, { locale }) => locale,
   ],
-  (companionWindow = {}, config = {}) => (
-    companionWindow.locale || config.language
+  (companionWindowLocale, config = {}, locale) => (
+    locale || companionWindowLocale || config.language || config.fallbackLanguages
   ),
 );
 
-/** Convenience selector to get a manifest (or placeholder) */
+const defaultManifestStatus = Object.freeze({ missing: true });
+
+/**
+ * Convenience selector to get a manifest (or placeholder).
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.windowId
+ * @returns {object} {error: null: id: string, isFetching: boolean, json: {...}}
+ */
 export const getManifestStatus = createSelector(
   [getManifest],
-  manifest => manifest || { missing: true },
+  manifest => manifest || defaultManifestStatus,
 );
 
-/** Convenience selector to get a manifest loading error */
+/**
+ * Convenience selector to get a manifest loading error
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @returns {string|null}
+ */
 export const getManifestError = createSelector(
   [getManifest],
   manifest => manifest && manifest.error,
 );
 
 /** Instantiate a manifesto instance */
-const getContextualManifestoInstance = createCachedSelector(
+const getContextualManifestoInstance = createSelector(
   getManifest,
-  getLocale,
-  (manifest, locale) => manifest
-    && createManifestoInstance(manifest.json, locale),
-)(
-  (state, { companionWindowId, manifestId, windowId }) => [
-    manifestId,
-    windowId,
-    getLocale(state, { companionWindowId }),
-  ].join(' - '), // Cache key consisting of manifestId, windowId, and locale
+  manifest => manifest && createManifestoInstance(manifest.json),
 );
 
-/** Instantiate a manifesto instance */
+/**
+ * Instantiate a manifesto instance
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @returns {object}
+ */
 export const getManifestoInstance = createSelector(
   getContextualManifestoInstance,
   (state, { json }) => json,
-  getLocale,
-  (manifesto, manifestJson, locale) => (
-    manifestJson && createManifestoInstance(manifestJson, locale)
+  (manifesto, manifestJson) => (
+    manifestJson && createManifestoInstance(manifestJson)
   ) || manifesto,
 );
 
 export const getManifestLocale = createSelector(
-  [getManifestoInstance],
-  manifest => manifest && manifest.options && manifest.options.locale && manifest.options.locale.replace(/-.*$/, ''),
+  [getManifestoInstance, getLocale],
+  (manifest, locale) => locale ?? (manifest && manifest.options && manifest.options.locale && manifest.options.locale.replace(/-.*$/, '')),
 );
 
 /** */
@@ -79,44 +94,62 @@ function getProperty(property) {
 }
 
 /**
- * Get the logo for a manifest
+ * Return the IIIF v3 provider of a manifest or null.
  * @param {object} state
  * @param {object} props
  * @param {string} props.manifestId
  * @param {string} props.windowId
- * @return {String|null}
+ * @returns {string|null}
  */
-export const getManifestLogo = createSelector(
-  [getManifestoInstance],
-  manifest => manifest && manifest.getLogo(),
-);
-
-/**
-* Return the IIIF v3 provider of a manifest or null
-* @param {object} state
-* @param {object} props
-* @param {string} props.manifestId
-* @param {string} props.windowId
-* @return {String|null}
-*/
-export const getManifestProvider = createSelector(
+export const getManifestProviderName = createSelector(
   [
     getProperty('provider'),
     getManifestLocale,
   ],
   (provider, locale) => provider
     && provider[0].label
-    && PropertyValue.parse(provider[0].label, locale).getValue(),
+    && PropertyValue.parse(provider[0].label).getValue(locale),
+);
+
+const EMPTY_LOGO_OPTS = Object.freeze({});
+
+/**
+ * Return the IIIF v3 provider logo.
+ * @param {object} state
+ * @param {object} props
+ * @returns {string|null}
+ */
+export const getProviderLogo = createSelector(
+  [
+    getProperty('provider'),
+    (state) => getThumbnailFactory(state, EMPTY_LOGO_OPTS),
+  ],
+  (provider, thumbnailFactory) => {
+    const logo = provider && provider[0] && provider[0].logo && provider[0].logo[0];
+    if (!logo) return null;
+    return thumbnailFactory.get(new Resource(logo))?.url;
+  },
 );
 
 /**
-* Return the IIIF v3 homepage of a manifest or null
-* @param {object} state
-* @param {object} props
-* @param {string} props.manifestId
-* @param {string} props.windowId
-* @return {String|null}
-*/
+ * Get the logo for a manifest.
+ * @param {object} state
+ * @param {object} props
+ * @returns {string|null}
+ */
+export const getManifestLogo = createSelector(
+  [getManifestoInstance, getProviderLogo],
+  (manifest, v3logo) => v3logo || (manifest && manifest.getLogo()),
+);
+
+/**
+ * Return the IIIF v3 homepage of a manifest or null.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @param {string} props.windowId
+ * @returns {string|null}
+ */
 export const getManifestHomepage = createSelector(
   [
     getProperty('homepage'),
@@ -125,41 +158,40 @@ export const getManifestHomepage = createSelector(
   (homepages, locale) => homepages
     && asArray(homepages).map(homepage => (
       {
-        label: PropertyValue.parse(homepage.label, locale)
-          .getValue(),
+        label: PropertyValue.parse(homepage.label)
+          .getValue(locale),
         value: homepage.id || homepage['@id'],
       }
     )),
 );
 
 /**
-* Return the IIIF v3 renderings of a manifest or null
-* @param {object} state
-* @param {object} props
-* @param {string} props.manifestId
-* @param {string} props.windowId
-* @return {String|null}
-*/
+ * Return the IIIF v3 renderings of a manifest or null.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @param {string} props.windowId
+ * @returns {string|null}
+ */
 export const getManifestRenderings = createSelector(
-  [getManifestoInstance],
-  manifest => manifest
+  [getManifestoInstance, getManifestLocale],
+  (manifest, locale) => manifest
     && manifest.getRenderings().map(rendering => (
       {
-        label: rendering.getLabel().getValue(),
+        label: rendering.getLabel().getValue(locale),
         value: rendering.id,
       }
     )),
 );
 
 /**
-* Return the IIIF v2/v3 seeAlso data from a manifest or null
-*
-* @param {object} state
-* @param {object} props
-* @param {string} props.manifestId
-* @param {string} props.windowId
-* @return {String|null}
-*/
+ * Return the IIIF v2/v3 seeAlso data from a manifest or null.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @param {string} props.windowId
+ * @returns {string|null}
+ */
 export const getManifestSeeAlso = createSelector(
   [
     getProperty('seeAlso'),
@@ -169,7 +201,7 @@ export const getManifestSeeAlso = createSelector(
     && asArray(seeAlso).map(related => (
       {
         format: related.format,
-        label: PropertyValue.parse(related.label, locale)
+        label: PropertyValue.parse(related.label)
           .getValue(locale),
         value: related.id || related['@id'],
       }
@@ -177,27 +209,26 @@ export const getManifestSeeAlso = createSelector(
 );
 
 /**
-* Return the IIIF v2/v3 seeAlso data from a manifest or null
-*
-* @param {object} state
-* @param {object} props
-* @param {string} props.manifestId
-* @param {string} props.windowId
-* @return {String|null}
-* @deprecated This does not actually return the content of "related" and
-* might be removed in a future version.
-* @see getManifestSeeAlso
-*/
+ * Return the IIIF v2/v3 seeAlso data from a manifest or null.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @param {string} props.windowId
+ * @returns {string|null}
+ * @deprecated This does not actually return the content of "related" and
+ * might be removed in a future version.
+ * @see getManifestSeeAlso
+ */
 export const getManifestRelatedContent = getManifestSeeAlso;
 
 /**
-* Return the IIIF v2 realated links manifest or null
-* @param {object} state
-* @param {object} props
-* @param {string} props.manifestId
-* @param {string} props.windowId
-* @return {String|null}
-*/
+ * Return the IIIF v2 realated links manifest or null
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @param {string} props.windowId
+ * @returns {string|null}
+ */
 export const getManifestRelated = createSelector(
   [
     getProperty('related'),
@@ -211,7 +242,7 @@ export const getManifestRelated = createSelector(
         }
         : {
           format: related.format,
-          label: PropertyValue.parse(related.label, locale)
+          label: PropertyValue.parse(related.label)
             .getValue(locale),
           value: related.id || related['@id'],
         }
@@ -219,45 +250,40 @@ export const getManifestRelated = createSelector(
 );
 
 /**
-* Return the IIIF requiredStatement (v3) or attribution (v2) data from a manifest or null
-* @param {object} state
-* @param {object} props
-* @param {string} props.manifestId
-* @param {string} props.windowId
-* @return {String|null}
-*/
+ * Return the IIIF requiredStatement (v3) or attribution (v2) data from a manifest or null
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @param {string} props.windowId
+ * @returns {string|null}
+ */
 export const getRequiredStatement = createSelector(
   [getManifestoInstance],
-  manifest =>
-    manifest &&
-    asArray(manifest.getRequiredStatement()).flatMap(labelValuePair => {
-      const values = labelValuePair?.getValues() ?? []
-      if (!values.length) {
-        return []
-      }
-      // FIXME: Add usage of labelValuePair.getLabels() as soon as it's released
-      // see https://github.com/IIIF-Commons/manifesto/pull/166
-      const labels =
-        labelValuePair.label?.getValues(labelValuePair.defaultLocale) ?? []
-      return Array.from(
-        { length: Math.max(labels.length, values.length) },
-        (_, idx) => idx
-      )
-        .filter(idx => values[idx])
-        .map(idx => ({
-          label: labels[idx] ?? null,
-          values: [values[idx]],
-        }))
-    })
-)
+  manifest => manifest && asArray(manifest.getRequiredStatement()).flatMap(labelValuePair => {
+    const values = labelValuePair?.getValues() ?? [];
+    if (!values.length) {
+      return [];
+    }
+    const labels = labelValuePair?.getLabels() ?? [];
+    return Array.from(
+      { length: Math.max(labels.length, values.length) },
+      (_, idx) => idx,
+    )
+      .filter(idx => values[idx])
+      .map(idx => ({
+        label: labels[idx] ?? null,
+        values: [values[idx]],
+      }));
+  }),
+);
 
 /**
-* Return the IIIF v2 rights (v3) or license (v2) data from a manifest or null
-* @param {object} state
-* @param {object} props
-* @param {string} props.manifestId
-* @param {string} props.windowId
-* @return {String|null}
+ * Return the IIIF v2 rights (v3) or license (v2) data from a manifest or null
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @param {string} props.windowId
+ * @returns {string|null}
 */
 export const getRights = createSelector(
   [
@@ -267,53 +293,48 @@ export const getRights = createSelector(
   ],
   (rights, license, locale) => {
     const data = rights || license;
-    return asArray(PropertyValue.parse(data, locale).getValues());
+    return asArray(PropertyValue.parse(data).getValues(locale));
   },
 );
 
 /**
-* Return the supplied thumbnail for a manifest or null
-* @param {object} state
-* @param {object} props
-* @param {string} props.manifestId
-* @param {string} props.windowId
-* @return {String|null}
-*/
+ * Return the supplied thumbnail for a manifest or null.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @param {string} props.windowId
+ * @returns {string|null}
+ */
 export function getManifestThumbnail(state, props) {
   const manifest = getManifestoInstance(state, props);
-  const { thumbnails = {} } = getConfig(state);
-
+  const thumbnailFactory = getThumbnailFactory(state, 80, 120);
   if (!manifest) return undefined;
-
-  const thumbnail = getThumbnail(manifest, {
-    maxHeight: 80, maxWidth: 120, preferredFormats: thumbnails.preferredFormats,
-  });
-
+  const thumbnail = thumbnailFactory.get(manifest);
   return thumbnail && thumbnail.url;
 }
 
 /**
-* Return manifest title
-* @param {object} state
-* @param {object} props
-* @param {string} props.manifestId
-* @param {string} props.windowId
-* @return {String}
-*/
+ * Return manifest title.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @param {string} props.windowId
+ * @returns {string}
+ */
 export const getManifestTitle = createSelector(
-  [getManifestoInstance],
-  manifest => manifest
-    && manifest.getLabel().getValue(),
+  [getManifestoInstance, getManifestLocale],
+  (manifest, locale) => manifest
+    && manifest.getLabel().getValue(locale),
 );
 
 /**
-* Return manifest description
-* @param {object} state
-* @param {object} props
-* @param {string} props.manifestId
-* @param {string} props.windowId
-* @return {String}
-*/
+ * Return manifest description (IIIF v2) -- distinct from any description field nested under metadata.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @param {string} props.windowId
+ * @returns {string|null}
+ */
 export const getManifestDescription = createSelector(
   [getLocale, getManifestoInstance],
   (locale, manifest) => manifest
@@ -321,31 +342,49 @@ export const getManifestDescription = createSelector(
 );
 
 /**
-* Return manifest title
+* Return manifest summary (IIIF v3).
 * @param {object} state
 * @param {object} props
 * @param {string} props.manifestId
 * @param {string} props.windowId
-* @return {String}
+* @return {string|null}
 */
+export const getManifestSummary = createSelector(
+  [
+    getProperty('summary'),
+    getManifestLocale,
+  ],
+  (summary, locale) => summary
+    && PropertyValue.parse(summary).getValue(locale),
+);
+
+/**
+ * Return manifest title.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @param {string} props.windowId
+ * @returns {string}
+ */
 export const getManifestUrl = createSelector(
   [getManifestoInstance],
   manifest => manifest && manifest.id,
 );
 
 /**
-* Return metadata in a label / value structure
-* This is a potential seam for pulling the i18n locale from
-* state and plucking out the appropriate language.
-* For now we're just getting the first.
-* @param {object} Manifesto IIIF Resource (e.g. canvas, manifest)
-* @return {Array[Object]}
-*/
-export function getDestructuredMetadata(iiifResource) {
+ * Return metadata in a label / value structure
+ * This is a potential seam for pulling the i18n locale from
+ * state and plucking out the appropriate language.
+ * For now we're just getting the first.
+ * @param {object} Manifesto IIIF Resource (e.g. canvas, manifest)
+ * @param iiifResource
+ * @returns {Array[Object]}
+ */
+export function getDestructuredMetadata(iiifResource, locale = undefined) {
   return (iiifResource
     && iiifResource.getMetadata().map(labelValuePair => ({
-      label: labelValuePair.getLabel(),
-      values: labelValuePair.getValues(),
+      label: labelValuePair.getLabel(locale),
+      values: labelValuePair.getValues(locale),
     }))
   );
 }
@@ -356,23 +395,40 @@ export function getDestructuredMetadata(iiifResource) {
  * @param {object} props
  * @param {string} props.manifestId
  * @param {string} props.windowId
- * @return {Array[Object]}
+ * @returns {Array[Object]}
  */
 export const getManifestMetadata = createSelector(
-  [getManifestoInstance],
-  manifest => manifest && getDestructuredMetadata(manifest),
+  [getManifestoInstance, getManifestLocale],
+  (manifest, locale) => manifest && getDestructuredMetadata(manifest, locale),
 );
 
 /** */
 function getLocalesForStructure(item) {
-  const languages = [];
+  const languages = new Set([]);
+
+  /** Extract language indicators from IIIF v2 or v3 manifests */
+  const extractLanguage = (i) => {
+    if (!(i && typeof i === 'object')) return;
+
+    // IIIF v2 pattern
+    if (i['@language'] && i['@value']) {
+      languages.add(i['@language']);
+      return;
+    }
+
+    // IIIF v3 pattern
+    Object.keys(i).forEach((key) => {
+      languages.add(key);
+    });
+  };
 
   if (Array.isArray(item)) {
-    languages.push(...item.filter(i => (typeof i === 'object' && i['@language'])).map(i => i['@language']));
-  } else if (item && typeof item === 'object') {
-    if (item['@language']) languages.push(item['@language']);
+    item.forEach(i => extractLanguage(i));
+  } else {
+    extractLanguage(item);
   }
-  return languages;
+
+  return [...languages];
 }
 
 /** */
@@ -395,7 +451,13 @@ export const getMetadataLocales = createSelector(
   manifest => getLocales(manifest),
 );
 
-/** */
+/**
+ * Returns manifest search service.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @returns {string|null}
+ */
 export const getManifestSearchService = createSelector(
   [getManifestoInstance],
   (manifest) => {
@@ -407,7 +469,13 @@ export const getManifestSearchService = createSelector(
   },
 );
 
-/** */
+/**
+ * Returns manifest autocomplete service.
+ * @param {object} state
+ * @param {object} props
+ * @param {string} props.manifestId
+ * @returns {string|null}
+ */
 export const getManifestAutocompleteService = createSelector(
   [getManifestSearchService],
   (searchService) => {

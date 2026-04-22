@@ -1,37 +1,25 @@
-import React from 'react';
-import { shallow } from 'enzyme';
-import DialogContent from '@material-ui/core/DialogContent';
+import { render, screen } from '@tests/utils/test-utils';
 import { ScrollIndicatedDialogContent } from '../../../src/components/ScrollIndicatedDialogContent';
 
 /** Utility function to wrap  */
 function createWrapper(props) {
-  return shallow(
+  return render(
     <ScrollIndicatedDialogContent
-      classes={{ shadowScrollDialog: 'shadowScrollDialog' }}
+      data-testid="subject"
       {...props}
     />,
   );
 }
 
 describe('ScrollIndicatedDialogContent', () => {
-  let wrapper;
-
   it('renders a DialogContnet component passing props', () => {
-    wrapper = createWrapper({ randomProp: 'randomPropValue' });
+    createWrapper({ randomprop: 'randomPropValue' });
 
-    expect(wrapper.find(DialogContent).length).toBe(1);
-    expect(wrapper.find(DialogContent).props().randomProp).toEqual('randomPropValue');
-  });
-
-  it('provides a className to the DialogContent prop to style it', () => {
-    wrapper = createWrapper();
-
-    expect(wrapper.find(DialogContent).props().className).toMatch('shadowScrollDialog');
+    expect(screen.getByTestId('subject')).toHaveAttribute('randomprop', 'randomPropValue');
   });
 
   it('joins an incoming className prop with our className', () => {
-    wrapper = createWrapper({ className: 'upstreamClassName' });
-
-    expect(wrapper.find(DialogContent).props().className).toMatch('upstreamClassName shadowScrollDialog');
+    createWrapper({ className: 'upstreamClassName' });
+    expect(screen.getByTestId('subject')).toHaveClass('upstreamClassName');
   });
 });

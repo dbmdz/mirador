@@ -1,9 +1,18 @@
-import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen } from '@tests/utils/test-utils';
 import { WindowTopBarPluginArea } from '../../../src/components/WindowTopBarPluginArea';
-import { PluginHook } from '../../../src/components/PluginHook';
+import { usePlugins } from '../../../src/extend/usePlugins';
 
-it('renders the component', () => {
-  const wrapper = shallow(<WindowTopBarPluginArea />);
-  expect(wrapper.find(PluginHook).length).toBe(1);
+vi.mock('../../../src/extend/usePlugins');
+
+/** */
+const mockComponent = () => (
+  <div data-testid="test" />
+);
+
+describe('WindowTopBarPluginArea', () => {
+  it('renders the component', () => {
+    vi.mocked(usePlugins).mockReturnValue({ PluginComponents: [mockComponent] });
+    render(<WindowTopBarPluginArea />);
+    expect(screen.getByTestId('test')).toBeInTheDocument();
+  });
 });

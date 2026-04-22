@@ -112,7 +112,7 @@ export function updateWindow(id, payload) {
  * @param  {String} windowId
  * @memberof ActionCreators
  */
-export function maximizeWindow(windowId, layout) {
+export function maximizeWindow(windowId) {
   return { type: ActionTypes.MAXIMIZE_WINDOW, windowId };
 }
 
@@ -193,9 +193,9 @@ export function setWindowViewType(windowId, viewType) {
 }
 
 /** */
-export function showCollectionDialog(manifestId, collectionPath = [], windowId) {
+export function showCollectionDialog(manifestId, dialogCollectionPath = [], windowId) {
   return {
-    collectionPath,
+    dialogCollectionPath,
     manifestId,
     type: ActionTypes.SHOW_COLLECTION_DIALOG,
     windowId,

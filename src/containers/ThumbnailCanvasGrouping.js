@@ -1,10 +1,8 @@
 import { compose } from 'redux';
 import { connect } from 'react-redux';
-import { withTranslation } from 'react-i18next';
-import { withStyles } from '@material-ui/core/styles';
 import { withPlugins } from '../extend/withPlugins';
 import * as actions from '../state/actions';
-import { getCurrentCanvas } from '../state/selectors';
+import { getCurrentCanvas, getConfig } from '../state/selectors';
 import { ThumbnailCanvasGrouping } from '../components/ThumbnailCanvasGrouping';
 
 /**
@@ -12,8 +10,8 @@ import { ThumbnailCanvasGrouping } from '../components/ThumbnailCanvasGrouping';
  * @memberof ThumbnailCanvasGrouping
  * @private
  */
-const mapDispatchToProps = (dispatch, { data }) => ({
-  setCanvas: (...args) => dispatch(actions.setCanvas(data.windowId, ...args)),
+const mapDispatchToProps = (dispatch, { windowId }) => ({
+  setCanvas: (...args) => dispatch(actions.setCanvas(windowId, ...args)),
 });
 
 /**
@@ -21,37 +19,12 @@ const mapDispatchToProps = (dispatch, { data }) => ({
  * @memberof ThumbnailCanvasGrouping
  * @private
  */
-const mapStateToProps = (state, { data }) => ({
-  currentCanvasId: (getCurrentCanvas(state, { windowId: data.windowId }) || {}).id,
-});
-
-/**
- * Styles for withStyles HOC
- */
-const styles = theme => ({
-  canvas: {
-    '&$currentCanvas': {
-      outline: `2px solid ${theme.palette.primary.main}`,
-      outlineOffset: '3px',
-    },
-    '&:hover': {
-      outline: `9px solid ${theme.palette.action.hover}`,
-      outlineOffset: '-2px',
-    },
-    boxSizing: 'border-box',
-    color: theme.palette.common.white,
-    cursor: 'pointer',
-    display: 'inline-block',
-    outline: 0,
-    whiteSpace: 'nowrap',
-  },
-  currentCanvas: {
-  },
+const mapStateToProps = (state, { windowId }) => ({
+  currentCanvasId: (getCurrentCanvas(state, { windowId }) || {}).id,
+  showThumbnailLabels: getConfig(state).thumbnailNavigation.showThumbnailLabels,
 });
 
 const enhance = compose(
-  withTranslation(),
-  withStyles(styles),
   connect(mapStateToProps, mapDispatchToProps),
   withPlugins('ThumbnailCanvasGrouping'),
 );

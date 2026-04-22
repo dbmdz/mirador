@@ -1,10 +1,9 @@
 import { compose } from 'redux';
 import { connect } from 'react-redux';
-import { withTranslation } from 'react-i18next';
 import { withPlugins } from '../extend/withPlugins';
 import * as actions from '../state/actions';
 import {
-  getContainerId, getShowZoomControlsConfig, getThemeIds,
+  getShowZoomControlsConfig, getThemeIds,
   getWorkspace,
 } from '../state/selectors';
 import { WorkspaceMenu } from '../components/WorkspaceMenu';
@@ -24,14 +23,12 @@ const mapDispatchToProps = {
  * @private
  */
 const mapStateToProps = state => ({
-  containerId: getContainerId(state),
   isWorkspaceAddVisible: getWorkspace(state).isWorkspaceAddVisible,
   showThemePicker: getThemeIds(state).length > 0,
   showZoomControls: getShowZoomControlsConfig(state),
 });
 
 const enhance = compose(
-  withTranslation(),
   connect(mapStateToProps, mapDispatchToProps),
   withPlugins('WorkspaceMenu'),
 );

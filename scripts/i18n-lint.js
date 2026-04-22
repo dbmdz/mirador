@@ -1,6 +1,6 @@
-const fs = require('fs');
-const glob = require('glob'); // eslint-disable-line import/no-extraneous-dependencies
-const chalk = require('chalk'); // eslint-disable-line import/no-extraneous-dependencies
+import fs from 'fs';
+import * as glob from 'glob';
+import chalk from 'chalk';
 
 const { log } = console;
 const globOpts = { cwd: 'src/locales' };
@@ -21,7 +21,6 @@ function lowerCaseSortedArray(arr) {
  */
 function unsortedKeys(arr) {
   const sortedArray = lowerCaseSortedArray(arr);
-
   return arr.filter((v, i) => v.toLowerCase() !== sortedArray[i]);
 }
 
@@ -30,10 +29,10 @@ function unsortedKeys(arr) {
  * (values will be sorted and downcased for comparison)
  */
 function missingKeys(arr1, arr2) {
-  const sortedDonwcasedLeftHandArray = lowerCaseSortedArray(arr1);
-  const sortedDonwcasedRightHandArray = lowerCaseSortedArray(arr2);
+  const sortedDowncasedLeftHandArray = lowerCaseSortedArray(arr1);
+  const sortedDowncasedRightHandArray = lowerCaseSortedArray(arr2);
 
-  return sortedDonwcasedLeftHandArray.filter((v, i) => v !== sortedDonwcasedRightHandArray[i]);
+  return sortedDowncasedLeftHandArray.filter((v, i) => !sortedDowncasedRightHandArray.includes(v));
 }
 
 files.forEach((fileName) => {

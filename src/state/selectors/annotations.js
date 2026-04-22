@@ -7,10 +7,14 @@ import { getCanvas, getVisibleCanvasIds } from './canvases';
 import { getConfig } from './config';
 import { getWindow } from './getters';
 
-/** */
+/**
+ * Returns the annotation object from the mirador slice.
+ * @param {object} state redux state
+ * @returns {object} Annotations from the state
+ */
 export const getAnnotations = state => miradorSlice(state).annotations;
 
-const getMotivation = createSelector(
+const getMotivations = createSelector(
   [
     getConfig,
     (state, { motivations }) => motivations,
@@ -60,6 +64,12 @@ const getAnnotationsOnSelectedCanvases = createSelector(
   },
 );
 
+/**
+ * Returns an array of present annotations given a canvasId.
+ * @param {object} state redux state
+ * @param {string} canvasId canvasId
+ * @returns {Array} An array of present annotations
+ */
 export const getPresentAnnotationsOnSelectedCanvases = createSelector(
   [
     getAnnotationsOnSelectedCanvases,
@@ -72,49 +82,60 @@ export const getPresentAnnotationsOnSelectedCanvases = createSelector(
 );
 
 /**
-* Return an array of annotation resources filtered by the given motivation for a particular canvas
-* @param {Array} annotations
-* @param {Array} motivations
-* @return {Array}
-*/
+ * Returns an array of annotation resources filtered by the given motivation for a particular canvas.
+ * @param {Array} annotations
+ * @param {Array} motivations
+ * @returns {Array}
+ */
 export const getAnnotationResourcesByMotivationForCanvas = createSelector(
-  [
-    getPresentAnnotationsCanvas,
-    getMotivation,
-  ],
-  (annotations, motivations) => filter(
-    flatten(annotations.map(annotation => annotation.resources)),
-    resource => resource.motivations.some(
-      motivation => motivations.includes(motivation),
-    ),
-  ),
+  [getPresentAnnotationsCanvas, getMotivations],
+  (annotations, motivations) => {
+    const resources = flatten(
+      annotations.map(annotation => annotation.resources),
+    );
+
+    // If motivations is empty, null, or undefined, return everything
+    if (!motivations || motivations.length === 0) {
+      return resources;
+    }
+
+    // Otherwise filter by motivations
+    return resources.filter(resource => resource.motivations.some(motivation => motivations.includes(motivation)));
+  },
 );
 
 /**
-* Return an array of annotation resources filtered by the given motivation
-* @param {Array} annotations
-* @param {Array} motivations
-* @return {Array}
-*/
+ * Returns an array of annotation resources filtered by the given motivation.
+ * @param {Array} annotations
+ * @param {Array} motivations
+ * @returns {Array}
+ */
 export const getAnnotationResourcesByMotivation = createSelector(
   [
     getPresentAnnotationsOnSelectedCanvases,
-    getMotivation,
+    getMotivations,
   ],
-  (annotations, motivations) => filter(
-    flatten(annotations.map(annotation => annotation.resources)),
-    resource => resource.motivations.some(
-      motivation => motivations.includes(motivation),
-    ),
-  ),
+  (annotations, motivations) => {
+    const resources = flatten(
+      annotations.map(annotation => annotation.resources),
+    );
+
+    // If motivations is empty, null, or undefined, return everything
+    if (!motivations || motivations.length === 0) {
+      return resources;
+    }
+
+    // Otherwise filter by motivations
+    return resources.filter(resource => resource.motivations.some(motivation => motivations.includes(motivation)));
+  },
 );
 
 /**
- * Return the selected annotations IDs of a given CanvasId
- * @param {Object} state
- * @param {String} windowId
+ * Returns the selected annotations IDs.
+ * @param {object} state
+ * @param {string} windowId
  * @param {Array} targetIds
- * @return {Array}
+ * @returns {Array}
  */
 export const getSelectedAnnotationId = createSelector(
   [
@@ -123,6 +144,11 @@ export const getSelectedAnnotationId = createSelector(
   ({ selectedAnnotationId }) => selectedAnnotationId,
 );
 
+/**
+ * Returns annotations on selected canvases.
+ * @param {object} state
+ * @returns {Array}
+ */
 export const getSelectedAnnotationsOnCanvases = createSelector(
   [
     getPresentAnnotationsOnSelectedCanvases,

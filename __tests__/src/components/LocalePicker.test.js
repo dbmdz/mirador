@@ -1,14 +1,12 @@
-import React from 'react';
-import { shallow } from 'enzyme';
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
+import { render, screen } from '@tests/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import { LocalePicker } from '../../../src/components/LocalePicker';
 
 /**
- * Helper function to create a shallow wrapper around LanguageSettings
+ * Helper function to create a shallow wrapper around LocalePicker
  */
 function createWrapper(props) {
-  return shallow(
+  return render(
     <LocalePicker
       availableLocales={[]}
       locale={undefined}
@@ -19,36 +17,49 @@ function createWrapper(props) {
 }
 
 describe('LocalePicker', () => {
-  let wrapper;
-
   it('hides the control if there are not locales to switch to', () => {
-    wrapper = createWrapper({ availableLocales: ['en'] });
+    const { container } = createWrapper({ availableLocales: ['en'] });
 
-    expect(wrapper.find(Select).length).toBe(0);
+    expect(container).toBeEmptyDOMElement(); // eslint-disable-line testing-library/no-container
   });
 
   it('renders a select with the current value', () => {
-    wrapper = createWrapper({ availableLocales: ['en', 'de'], locale: 'en' });
-
-    expect(wrapper.find(Select).length).toBe(1);
-    expect(wrapper.find(Select).props().value).toBe('en');
+    createWrapper({ availableLocales: ['en', 'de'], locale: 'de' });
+    // The option to expand the dropdown menu is rendered by a CompanionWindow titleControls prop in WindowSideBarInfoPanel, which is a combobox
+    const dropdownTitle = screen.getByRole('combobox');
+    expect(dropdownTitle).toHaveTextContent('Deutsch');
   });
 
-  it('renders a select with a list item for each language passed in props', () => {
-    wrapper = createWrapper({ availableLocales: ['en', 'de'] });
-
-    expect(wrapper.find(MenuItem).length).toBe(2);
+  it('renders a select with both options and sets the current value', async () => {
+    const user = userEvent.setup();
+    createWrapper({ availableLocales: ['en', 'de'], locale: 'de' });
+    const dropdownTitle = screen.getByRole('combobox');
+    // Open the menu
+    await user.click(dropdownTitle);
+    // The dropddown menu is not nested within the combobox, it is a sibling in the DOM, an MuiMenu
+    const menu = screen.getByRole('listbox');
+    // Assert that the menu element has 2 children (2 options)
+    expect(menu.children).toHaveLength(2); // eslint-disable-line testing-library/no-node-access
+    // Verify that the select element has the correct value ('de')
+    const deOption = screen.getByRole('option', { name: 'Deutsch' });
+    expect(deOption).toHaveAttribute('aria-selected', 'true');
+    // Verify en is also an option
+    expect(screen.getByRole('option', { name: 'English' })).toBeInTheDocument();
   });
 
-  it('triggers setLocale prop when clicking a list item', () => {
-    const setLocale = jest.fn();
-
-    wrapper = createWrapper({
+  it('triggers setLocale prop when clicking a list item', async () => {
+    const user = userEvent.setup();
+    const setLocale = vi.fn();
+    createWrapper({
       availableLocales: ['en', 'de'],
+      locale: 'en',
       setLocale,
     });
-    wrapper.find(Select).simulate('change', { target: { value: 'de' } });
-
+    const dropdownTitle = screen.getByRole('combobox');
+    // Open the Select component
+    await user.click(dropdownTitle);
+    // Change the locale to 'de'
+    await user.click(screen.getByRole('option', { name: 'Deutsch' }));
     expect(setLocale).toHaveBeenCalledTimes(1);
     expect(setLocale).toHaveBeenCalledWith('de');
   });

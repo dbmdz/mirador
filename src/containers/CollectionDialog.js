@@ -1,11 +1,9 @@
 import { compose } from 'redux';
 import { connect } from 'react-redux';
-import { withStyles } from '@material-ui/core';
-import { withTranslation } from 'react-i18next';
 import { withPlugins } from '../extend/withPlugins';
 import * as actions from '../state/actions';
 import {
-  getContainerId, getManifest, getManifestoInstance, getSequenceBehaviors, getWindow,
+  getManifest, getManifestoInstance, getSequenceBehaviors, getWindow,
 } from '../state/selectors';
 import { CollectionDialog } from '../components/CollectionDialog';
 
@@ -28,16 +26,15 @@ const mapDispatchToProps = {
  * @private
  */
 const mapStateToProps = (state, { windowId }) => {
-  const { collectionPath, collectionManifestId: manifestId } = getWindow(state, { windowId });
+  const { collectionManifestId: manifestId, dialogCollectionPath } = getWindow(state, { windowId });
   const manifest = getManifest(state, { manifestId });
 
-  const collectionId = collectionPath && collectionPath[collectionPath.length - 1];
+  const collectionId = dialogCollectionPath && dialogCollectionPath[dialogCollectionPath.length - 1];
   const collection = collectionId && getManifest(state, { manifestId: collectionId });
 
   return {
     collection: collection && getManifestoInstance(state, { manifestId: collection.id }),
-    collectionPath,
-    containerId: getContainerId(state),
+    dialogCollectionPath,
     error: manifest && manifest.error,
     isMultipart: getSequenceBehaviors(state, { manifestId }).includes('multi-part'),
     manifest: manifest && getManifestoInstance(state, { manifestId }),
@@ -48,44 +45,7 @@ const mapStateToProps = (state, { windowId }) => {
   };
 };
 
-/** */
-const styles = theme => ({
-  collectionFilter: {
-    padding: '16px',
-    paddingTop: 0,
-  },
-  collectionItem: {
-    whiteSpace: 'normal',
-  },
-  collectionMetadata: {
-    padding: '16px',
-  },
-  dark: {
-    color: '#000000',
-  },
-  dialog: {
-    position: 'absolute !important',
-  },
-  dialogContent: {
-    padding: theme.spacing(1),
-  },
-  light: {
-    color: theme.palette.grey[400],
-  },
-  listitem: {
-    '&:focus': {
-      backgroundColor: theme.palette.action.focus,
-    },
-    '&:hover': {
-      backgroundColor: theme.palette.action.hover,
-    },
-    cursor: 'pointer',
-  },
-});
-
 const enhance = compose(
-  withTranslation(),
-  withStyles(styles),
   connect(mapStateToProps, mapDispatchToProps),
   withPlugins('CollectionDialog'),
 );

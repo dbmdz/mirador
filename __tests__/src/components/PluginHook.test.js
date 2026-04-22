@@ -1,35 +1,42 @@
-import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen } from '@tests/utils/test-utils';
 import { PluginHook } from '../../../src/components/PluginHook';
+import { usePlugins } from '../../../src/extend/usePlugins';
 
-it('renders nothing when no plugins passed', () => {
-  const wrapper = shallow(<PluginHook />);
-  expect(wrapper).toEqual({});
-});
+vi.mock('../../../src/extend/usePlugins');
 
 /** */
-const PluginComponentA = props => <div>A</div>;
+const mockComponentA = () => (
+  <div data-testid="testA" />
+);
+
 /** */
-const PluginComponentB = props => <div>B</div>;
+const mockComponentB = () => (
+  <div data-testid="testB" />
+);
 
-it('renders plugin components if some passed', () => {
-  const wrapper = shallow(
-    <PluginHook
-      PluginComponents={[PluginComponentA, PluginComponentB]}
-    />,
-  );
+describe('WindowTopBarPluginArea', () => {
+  it('renders nothing when no plugins passed', () => {
+    vi.mocked(usePlugins).mockReturnValue({ PluginComponents: [] });
+    render(<PluginHook />);
+    expect(screen.queryByTestId('testA')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('testB')).not.toBeInTheDocument();
+  });
 
-  expect(wrapper.find(PluginComponentA).length).toBe(1);
-  expect(wrapper.find(PluginComponentB).length).toBe(1);
-});
+  it('renders plugin components if some passed', () => {
+    vi.mocked(usePlugins).mockReturnValue({ PluginComponents: [mockComponentA, mockComponentB] });
+    render(<PluginHook />);
+    expect(screen.getByTestId('testA')).toBeInTheDocument();
+    expect(screen.getByTestId('testB')).toBeInTheDocument();
+  });
 
-it('does not pass classes to PluginComponents (which will throw warnings for styles plugins)', () => {
-  const wrapper = shallow(
-    <PluginHook
-      classes={{ someLocal: 'classes' }}
-      PluginComponents={[PluginComponentA]}
-    />,
-  );
-
-  expect(wrapper.find(PluginComponentA).props().classes).toBeUndefined();
+  it('does not pass classes to PluginComponents (which will throw warnings for styles plugins)', () => {
+    vi.mocked(usePlugins).mockReturnValue({ PluginComponents: [mockComponentA] });
+    render(
+      <PluginHook
+        classes={{ someLocal: 'classes' }}
+      />,
+    );
+    // if called with nothing passed as args, .toHaveClass checks for existence of any classes
+    expect(screen.getByTestId('testA')).not.toHaveClass();
+  });
 });

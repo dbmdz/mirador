@@ -1,7 +1,5 @@
 import { compose } from 'redux';
 import { connect } from 'react-redux';
-import { withTranslation } from 'react-i18next';
-import { withStyles } from '@material-ui/core/styles';
 import { withPlugins } from '../extend/withPlugins';
 import * as actions from '../state/actions';
 import {
@@ -28,9 +26,7 @@ function getIdAndContentOfResources(resources) {
 /** For connect */
 const mapStateToProps = (state, { canvasId, windowId }) => ({
   annotations: getIdAndContentOfResources(
-    getAnnotationResourcesByMotivationForCanvas(
-      state, { canvasId, windowId },
-    ),
+    getAnnotationResourcesByMotivationForCanvas(state, { canvasId, windowId }),
   ),
   htmlSanitizationRuleSet: getConfig(state).annotations.htmlSanitizationRuleSet,
   label: getCanvasLabel(state, {
@@ -51,35 +47,7 @@ const mapDispatchToProps = {
   selectAnnotation: actions.selectAnnotation,
 };
 
-/** For withStlyes */
-const styles = theme => ({
-  annotationListItem: {
-    '&$hovered': {
-      backgroundColor: theme.palette.action.hover,
-    },
-    '&:hover,&:focus': {
-      backgroundColor: theme.palette.action.hover,
-    },
-    borderBottom: `0.5px solid ${theme.palette.divider}`,
-    cursor: 'pointer',
-    whiteSpace: 'normal',
-  },
-  chip: {
-    backgroundColor: theme.palette.background.paper,
-    marginRight: theme.spacing(0.5),
-    marginTop: theme.spacing(1),
-  },
-  hovered: {},
-  sectionHeading: {
-    paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(1),
-    paddingTop: theme.spacing(2),
-  },
-});
-
 const enhance = compose(
-  withTranslation(),
-  withStyles(styles),
   connect(mapStateToProps, mapDispatchToProps),
   withPlugins('CanvasAnnotations'),
 );

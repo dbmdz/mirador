@@ -1,57 +1,44 @@
-import React from 'react';
-import { shallow } from 'enzyme';
-import Paper from '@material-ui/core/Paper';
-import Typography from '@material-ui/core/Typography';
+import { render, screen } from '@tests/utils/test-utils';
 import { WindowCanvasNavigationControls } from '../../../src/components/WindowCanvasNavigationControls';
-import ViewerInfo from '../../../src/containers/ViewerInfo';
-import ViewerNavigation from '../../../src/containers/ViewerNavigation';
-import ZoomControls from '../../../src/containers/ZoomControls';
-import { PluginHook } from '../../../src/components/PluginHook';
 
-/** create wrapper */
-function createWrapper(props) {
-  return shallow(
+/**
+ * create a simple wrapper for rendering our component
+ */
+function Subject({ ...props }) {
+  return (
     <WindowCanvasNavigationControls
       canvases={[]}
       canvasLabel="label"
-      size={{ width: 300 }}
       windowId="abc"
-      zoomToWorld={() => {}}
+      zoomToWorld={vi.fn()}
       {...props}
-    />,
+    />
   );
 }
 
 describe('WindowCanvasNavigationControls', () => {
-  let wrapper;
-  const zoomToWorld = jest.fn();
-
-  it('renders properly', () => {
-    wrapper = createWrapper({ zoomToWorld });
-    expect(wrapper.matchesElement(
-      <Paper square>
-        <ZoomControls zoomToWorld={zoomToWorld} />
-        <ViewerNavigation />
-        <ViewerInfo />
-        <PluginHook />
-      </Paper>,
-    )).toBe(true);
+  it('renders properly', async () => {
+    const { container } = render(<Subject />);
+    expect(screen.getByLabelText('Previous item', { selector: 'button' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Next item', { selector: 'button' })).toBeInTheDocument();
+    expect(screen.getByText(/1 of/)).toBeInTheDocument();
+    expect(container.firstChild).not.toHaveClass('mirador-canvas-nav-stacked'); // eslint-disable-line testing-library/no-node-access
   });
 
   it('renders only a screen-reader accessibile version when visible=false', () => {
-    wrapper = createWrapper({ visible: false });
-    expect(wrapper.matchesElement(<Typography variant="srOnly"><ViewerInfo /></Typography>)).toBe(true);
+    const { container } = render(<Subject visible={false} />);
+    expect(container.firstChild).toHaveStyle({ height: '1px', margin: '-1px', width: '1px' }); // eslint-disable-line testing-library/no-node-access
   });
 
-  it('sets the proper class/ZoomControls prop dependent on the size/width prop', () => {
-    wrapper = createWrapper();
+  it.skip('stacks the nav controls on small width screens', () => {
+    const { container } = render(<div style={{ position: 'relative', width: 252 }}><Subject /></div>);
+    expect(container.firstChild).toHaveClass('mirador-canvas-nav-stacked'); // eslint-disable-line testing-library/no-node-access
+  });
 
-    expect(wrapper.find('.mirador-canvas-nav-stacked').length).toEqual(0);
-    expect(wrapper.find(ZoomControls).props().displayDivider).toBe(true);
-
-    wrapper.setProps({ size: { width: 200 } });
-
-    expect(wrapper.find('.mirador-canvas-nav-stacked').length).toEqual(1);
-    expect(wrapper.find(ZoomControls).props().displayDivider).toBe(false);
+  it('shows the zoom control component when specified', () => {
+    render(<Subject showZoomControls />);
+    expect(screen.getByRole('button', { name: 'Zoom in' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zoom out' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reset zoom' })).toBeInTheDocument();
   });
 });

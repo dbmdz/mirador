@@ -1,6 +1,5 @@
 import { connect } from 'react-redux';
 import { compose } from 'redux';
-import { withTranslation } from 'react-i18next';
 import { Utils } from 'manifesto.js';
 import { withPlugins } from '../extend/withPlugins';
 import * as actions from '../state/actions';
@@ -17,7 +16,7 @@ import { IIIFAuthentication } from '../components/IIIFAuthentication';
  * @memberof FullScreenButton
  * @private
  */
-const mapStateToProps = (state, { windowId }) => {
+const mapStateToProps = (state, { windowId }) => { // eslint-disable-line complexity
   const services = selectCurrentAuthServices(state, { windowId });
 
   // TODO: get the most actionable auth service...
@@ -91,7 +90,6 @@ const mapDispatchToProps = {
 };
 
 const enhance = compose(
-  withTranslation(),
   connect(mapStateToProps, mapDispatchToProps),
   withPlugins('IIIFAuthentication'),
 );
