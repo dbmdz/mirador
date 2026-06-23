@@ -38,7 +38,15 @@ const StyledMenuList = styled(MenuList, { name: 'WindowViewSettings', slot: 'opt
 /**
  *
  */
-export function WindowViewSettings({ handleClose = () => {}, windowViewType, viewTypes = [], setWindowViewType, windowId, setShiftBookView = () => {}, shiftBookView = false }) {
+export function WindowViewSettings({
+  handleClose = () => {},
+  windowViewType,
+  viewTypes = [],
+  setWindowViewType,
+  windowId,
+  setShiftBookView = () => {},
+  shiftBookView = false,
+}) {
   const { t } = useTranslation();
   /** */
   const handleChange = (value) => {
@@ -79,13 +87,15 @@ export function WindowViewSettings({ handleClose = () => {}, windowViewType, vie
   if (viewTypes.length === 0) return null;
   return (
     <>
-      <ListSubheader role="presentation" disableSticky>{t('view')}</ListSubheader>
-      <StyledMenuList role="menubar">
-        { viewTypes.map(value => menuItem({ Icon: iconMap[value], value })) }
-      </StyledMenuList>
+      <ListSubheader role="presentation" disableSticky>
+        {t('view')}
+      </ListSubheader>
+      <StyledMenuList role="menubar">{viewTypes.map((value) => menuItem({ Icon: iconMap[value], value }))}</StyledMenuList>
       {windowViewType === 'book' && (
         <>
-          <ListSubheader role="presentation" disableSticky tabIndex="-1">{t('viewOptions')}</ListSubheader>
+          <ListSubheader role="presentation" disableSticky tabIndex="-1">
+            {t('viewOptions')}
+          </ListSubheader>
           <ViewOption
             onClick={() => setShiftBookView(!shiftBookView)}
             selected={shiftBookView}
@@ -94,7 +104,7 @@ export function WindowViewSettings({ handleClose = () => {}, windowViewType, vie
             }}
           >
             <FormControlLabel
-              control={(
+              control={
                 <ShiftBookViewIcon
                   sx={{
                     height: '18px',
@@ -102,7 +112,7 @@ export function WindowViewSettings({ handleClose = () => {}, windowViewType, vie
                   }}
                   color={shiftBookView ? 'secondary' : undefined}
                 />
-              )}
+              }
               label={t('shiftPages')}
               labelPlacement="bottom"
             />

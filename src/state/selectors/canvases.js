@@ -79,17 +79,8 @@ export const getVisibleCanvases = createSelector([getVisibleCanvasIds, getCanvas
  * @returns {Array}
  */
 export const getCanvasGroupings = createSelector(
-  [
-    getCanvases,
-    getWindowViewType,
-    getWindowConfig,
-  ],
-  (canvases, view, { shiftBookView = false }) => (canvases
-      && new CanvasGroupings(
-        canvases,
-        view,
-        shiftBookView,
-      ).groupings()),
+  [getCanvases, getWindowViewType, getWindowConfig],
+  (canvases, view, { shiftBookView = false }) => canvases && new CanvasGroupings(canvases, view, shiftBookView).groupings(),
 );
 
 /**

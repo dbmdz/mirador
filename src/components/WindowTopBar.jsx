@@ -50,7 +50,8 @@ export function WindowTopBar({
   allowWindowSideBar = true,
   sideBarOpen = false,
   component = 'nav',
-  shiftBookView = false, viewType
+  shiftBookView = false,
+  viewType,
 }) {
   const { t } = useTranslation();
   // eslint-disable-next-line prefer-rest-params
@@ -77,7 +78,13 @@ export function WindowTopBar({
           </MiradorMenuButton>
         )}
         <WindowTopBarTitle windowId={windowId} />
-        {allowTopMenuButton && <WindowTopMenuButton windowId={windowId} className={ns('window-menu-btn')} viewIsModified={viewType === 'book' && shiftBookView} />}
+        {allowTopMenuButton && (
+          <WindowTopMenuButton
+            windowId={windowId}
+            className={ns('window-menu-btn')}
+            viewIsModified={viewType === 'book' && shiftBookView}
+          />
+        )}
         <WindowTopBarPluginArea windowId={windowId} />
         <WindowTopBarPluginMenu windowId={windowId} />
         {allowMaximize && (
@@ -121,7 +128,7 @@ WindowTopBar.propTypes = {
   removeWindow: PropTypes.func.isRequired,
   shiftBookView: PropTypes.bool,
   toggleWindowSideBar: PropTypes.func.isRequired,
-viewType: PropTypes.oneOf(['book', 'single', 'gallery']).isRequired,
+  viewType: PropTypes.oneOf(['book', 'single', 'gallery']).isRequired,
   // eslint-disable-next-line react/no-unused-prop-types
   windowDraggable: PropTypes.bool,
   windowId: PropTypes.string.isRequired,

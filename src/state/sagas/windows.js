@@ -206,11 +206,13 @@ export function* updateVisibleCanvases({ windowId }) {
   const { canvasId } = yield select(getWindow, { windowId });
   const visibleCanvases = yield select(getCanvasGrouping, { canvasId, windowId });
   // Fetch info responses in case a previously unseen canvas has become visible through the new view
-  yield call(fetchInfoResponses, { visibleCanvases: visibleCanvases.map(c => c.id), windowId });
-  yield put(updateWindow(windowId, {
-    canvasId: visibleCanvases[0].id,
-    visibleCanvases: (visibleCanvases || []).map(c => c.id),
-  }));
+  yield call(fetchInfoResponses, { visibleCanvases: visibleCanvases.map((c) => c.id), windowId });
+  yield put(
+    updateWindow(windowId, {
+      canvasId: visibleCanvases[0].id,
+      visibleCanvases: (visibleCanvases || []).map((c) => c.id),
+    }),
+  );
 }
 
 /** @private */

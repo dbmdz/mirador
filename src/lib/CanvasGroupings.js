@@ -18,7 +18,7 @@ export default class CanvasGroupings {
       return this.groupings()[index];
     }
     const canvasId = this.canvases[index];
-    return this.groupings().find(g => g.indexOf(canvasId) >= 0);
+    return this.groupings().find((g) => g.indexOf(canvasId) >= 0);
   }
 
   /**
