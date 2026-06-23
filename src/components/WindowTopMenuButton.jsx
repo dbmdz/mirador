@@ -41,13 +41,7 @@ export function WindowTopMenuButton({ classes = {}, viewIsModified = false, wind
           <WindowOptionsIcon />
         </Badge>
       </MiradorMenuButton>
-      <WindowTopMenu
-        windowId={windowId}
-        anchorEl={anchorEl}
-        handleClose={handleMenuClose}
-        id={menuId}
-        open={open}
-      />
+      <WindowTopMenu windowId={windowId} anchorEl={anchorEl} handleClose={handleMenuClose} id={menuId} open={open} />
     </>
   );
 }

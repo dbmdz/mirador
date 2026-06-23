@@ -38,9 +38,7 @@ const StyledMenuList = styled(MenuList, { name: 'WindowViewSettings', slot: 'opt
 /**
  *
  */
-export function WindowViewSettings({
-  handleClose = () => {}, windowViewType, viewTypes = [], setWindowViewType, setShiftBookView = () => {}, shiftBookView = false
-}) {
+export function WindowViewSettings({ handleClose = () => {}, windowViewType, viewTypes = [], setWindowViewType, windowId, setShiftBookView = () => {}, shiftBookView = false }) {
   const { t } = useTranslation();
   /** */
   const handleChange = (value) => {
@@ -59,9 +57,13 @@ export function WindowViewSettings({
   const menuItem = ({ value, Icon }) => (
     <ViewOption
       aria-checked={windowViewType === value}
-      autoFocus={windowViewType === value} // eslint-disable-line jsx-a11y/no-autofocus
+      // eslint-disable-next-line jsx-a11y/no-autofocus
+      autoFocus={windowViewType === value}
       key={value}
-      onClick={() => { handleChange(value); handleClose(); }}
+      onClick={() => {
+        handleChange(value);
+        handleClose();
+      }}
       role="menuitemradio"
       selected={windowViewType === value}
     >

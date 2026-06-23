@@ -20,13 +20,10 @@ const mapStateToProps = (state, { windowId }) => ({
  * @memberof WindowTopMenu
  * @private
  */
-const mapDispatchToProps = dispatch => ({
+const mapDispatchToProps = (dispatch) => ({
   toggleDraggingEnabled: () => dispatch(actions.toggleDraggingEnabled()),
 });
 
-const enhance = compose(
-  connect(mapStateToProps, mapDispatchToProps),
-  withPlugins('WindowTopMenu'),
-);
+const enhance = compose(connect(mapStateToProps, mapDispatchToProps), withPlugins('WindowTopMenu'));
 
 export default enhance(WindowTopMenu);
