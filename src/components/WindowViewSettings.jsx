@@ -43,7 +43,6 @@ export function WindowViewSettings({
   windowViewType,
   viewTypes = [],
   setWindowViewType,
-  windowId,
   setShiftBookView = () => {},
   shiftBookView = false,
 }) {
