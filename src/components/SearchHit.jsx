@@ -13,6 +13,7 @@ import SanitizedHtml from '../containers/SanitizedHtml';
 import TruncatedHit from '../lib/TruncatedHit';
 import { ScrollTo } from './ScrollTo';
 import ns from '../config/css-ns';
+import classNames from 'classnames';
 
 const Root = styled(ListItem, { name: 'SearchHit', slot: 'root' })(({ ownerState, theme }) => ({
   '&.Mui-focused': {
@@ -132,14 +133,13 @@ export function SearchHit({
 
   return (
     <ScrollTo
-      className={ns('search-hit')}
       containerRef={containerRef}
       offsetTop={96} // offset for the height of the form above
       scrollTo={windowSelected && !focused}
     >
       <Root
         ownerState={ownerState}
-        className={windowSelected ? 'windowSelected' : ''}
+        className={classNames(ns('search-hit'), windowSelected ? 'windowSelected' : '')}
         divider
         component={selected ? 'li' : ListItemButton}
         onClick={handleClick}
