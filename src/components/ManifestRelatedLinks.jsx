@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import CollapsibleSection from '../containers/CollapsibleSection';
 import ns from '../config/css-ns';
 import { PluginHook } from './PluginHook';
+import ns from '../config/css-ns';
 
 const StyledDl = styled('dl')(({ theme }) => ({
   '& dd': {
@@ -43,7 +44,13 @@ export function ManifestRelatedLinks({
 
   return (
     <CollapsibleSection aria-labelledby={titleId} id={id} label={t('related')}>
-      <Typography aria-labelledby={`${id} ${titleId}`} id={titleId} variant="h4" component="h5">
+      <Typography
+        aria-labelledby={`${id} ${titleId}`}
+        id={titleId}
+        className={ns('related-links-label')}
+        variant="h4"
+        component="h5"
+      >
         {t('links')}
       </Typography>
       <StyledDl className={classNames(ns('label-value-metadata'))}>
