@@ -95,27 +95,29 @@ export function WindowViewSettings({
           <ListSubheader role="presentation" disableSticky tabIndex="-1">
             {t('viewOptions')}
           </ListSubheader>
-          <ViewOption
-            onClick={() => setShiftBookView(!shiftBookView)}
-            selected={shiftBookView}
-            sx={{
-              whiteSpace: 'break-spaces',
-            }}
-          >
-            <FormControlLabel
-              control={
-                <ShiftBookViewIcon
-                  sx={{
-                    height: '18px',
-                    width: 'auto',
-                  }}
-                  color={shiftBookView ? 'secondary' : undefined}
-                />
-              }
-              label={t('shiftPages')}
-              labelPlacement="bottom"
-            />
-          </ViewOption>
+          <StyledMenuList role="menubar">
+            <ViewOption
+              onClick={() => setShiftBookView(!shiftBookView)}
+              selected={shiftBookView}
+              sx={{
+                whiteSpace: 'break-spaces',
+              }}
+            >
+              <FormControlLabel
+                control={
+                  <ShiftBookViewIcon
+                    sx={{
+                      height: '18px',
+                      width: 'auto',
+                    }}
+                    color={shiftBookView ? 'secondary' : undefined}
+                  />
+                }
+                label={t('shiftPages')}
+                labelPlacement="bottom"
+              />
+            </ViewOption>
+          </StyledMenuList>
         </>
       )}
     </>
