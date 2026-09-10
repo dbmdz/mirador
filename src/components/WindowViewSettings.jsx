@@ -97,6 +97,7 @@ export function WindowViewSettings({
           </ListSubheader>
           <StyledMenuList role="menubar">
             <ViewOption
+              aria-checked={shiftBookView}
               onClick={() => setShiftBookView(!shiftBookView)}
               selected={shiftBookView}
               sx={{
