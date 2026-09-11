@@ -1,4 +1,4 @@
-image: "$BUILD_IMAGE_NODE:24"
+image: '$BUILD_IMAGE_NODE:24'
 
 stages:
   - publish
