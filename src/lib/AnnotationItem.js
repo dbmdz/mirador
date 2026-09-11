@@ -1,5 +1,4 @@
 import compact from 'lodash/compact';
-import flatten from 'lodash/flatten';
 import { v4 as uuid } from 'uuid';
 
 /**
@@ -35,16 +34,22 @@ export default class AnnotationItem {
     }
   }
 
+  /** */
+  bodyValue(body) {
+    if (typeof body === 'string') return body;
+    return body.value;
+  }
+
   /**
    * @return {[Array]}
    */
   get motivations() {
-    return flatten(compact(new Array(this.resource.motivation)));
+    return compact(new Array(this.resource.motivation)).flat();
   }
 
   /** */
   get body() {
-    return flatten(compact(new Array(this.resource.body)));
+    return compact(new Array(this.resource.body)).flat();
   }
 
   /** */
@@ -55,14 +60,14 @@ export default class AnnotationItem {
   /** */
   get tags() {
     if (this.isOnlyTag()) {
-      return this.body.map((r) => r.value);
+      return this.body.map((r) => this.bodyValue(r));
     }
-    return this.body.filter((r) => r.purpose === 'tagging').map((r) => r.value);
+    return this.body.filter((r) => r.purpose === 'tagging').map((r) => this.bodyValue(r));
   }
 
   /** */
   get target() {
-    return flatten(compact(new Array(this.resource.target)));
+    return compact(new Array(this.resource.target)).flat();
   }
 
   /** */
@@ -70,7 +75,7 @@ export default class AnnotationItem {
     if (this.isOnlyTag()) return null;
     return this.body
       .filter((r) => r.purpose !== 'tagging')
-      .map((r) => r.value)
+      .map((r) => this.bodyValue(r))
       .join(' ');
   }
 
@@ -81,7 +86,7 @@ export default class AnnotationItem {
       case 'string':
         return target;
       case 'object':
-        return flatten(compact(new Array(target.selector)));
+        return compact(new Array(target.selector)).flat();
       default:
         return null;
     }

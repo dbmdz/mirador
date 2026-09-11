@@ -12,7 +12,7 @@ import ns from '../config/css-ns';
 
 /** Renders plugins */
 function PluginHookWithHeader({ targetName, ...props }) {
-  const PluginComponents = usePlugins(targetName);
+  const { PluginComponents } = usePlugins(targetName);
   const { t } = useTranslation();
   return PluginComponents?.length > 0 ? (
     <>
@@ -54,15 +54,15 @@ export function WindowTopMenu({
         vertical: 'top',
       }}
       onClose={handleClose}
-      TransitionProps={{
-        onEntering: toggleDraggingEnabled,
-        onExit: toggleDraggingEnabled,
-      }}
       orientation="horizontal"
       anchorEl={anchorEl}
       open={open}
       role="menu"
       slotProps={{
+        transition: {
+          onEntering: toggleDraggingEnabled,
+          onExit: toggleDraggingEnabled,
+        },
         paper: {
           className: ns('window-top-menu'),
         },

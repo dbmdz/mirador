@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import fs from 'fs/promises';
 
 /**
  * Vite configuration
@@ -14,8 +13,8 @@ export default defineConfig({
       formats: ['umd'],
       name: 'Mirador',
     },
-    rollupOptions: {
-      external: ['__tests__/*', '__mocks__/*'],
+    rolldownOptions: {
+      external: ['__tests__/*'],
       output: {
         assetFileNames: 'mirador.[ext]',
         exports: 'named',
@@ -24,7 +23,8 @@ export default defineConfig({
     sourcemap: true,
   },
   define: {
-    'process.env': {},
+    'process.env': '{}',
+    'process.env.NODE_ENV': JSON.stringify('production'),
   },
   plugins: [react()],
 });

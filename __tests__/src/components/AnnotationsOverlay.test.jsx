@@ -114,7 +114,9 @@ describe('AnnotationsOverlay', () => {
         viewer: null,
       });
 
-      vi.spyOn(viewer.viewport, 'getMaxZoom').mockImplementation(() => 1);
+      const getItemAt = vi
+        .spyOn(viewer.world, 'getItemAt')
+        .mockImplementation((index) => (index === 0 ? { viewportToImageZoom: vi.fn(() => 0.05) } : undefined));
       vi.spyOn(viewer.viewport, 'getZoom').mockImplementation(() => 0.05);
 
       rerender(
@@ -239,6 +241,52 @@ describe('AnnotationsOverlay', () => {
       });
 
       expect(selectAnnotation).toHaveBeenCalledWith('base', 'http://example.org/identifier/annotation/anno-line');
+    });
+
+    /** Raises canvas-click over the single test annotation with the given gesture shape */
+    const clickAnnotationWithGesture = (pointerType, quick) => {
+      const selectAnnotation = vi.fn();
+
+      const { viewer } = createWrapper({
+        annotations: [
+          new AnnotationList({
+            '@id': 'foo',
+            resources: [
+              {
+                '@id': 'http://example.org/identifier/annotation/anno-line',
+                '@type': 'oa:Annotation',
+                motivation: 'sc:painting',
+                on: 'http://iiif.io/api/presentation/2.0/example/fixtures/canvas/24/c1.json#xywh=100,100,250,20',
+              },
+            ],
+          }),
+        ],
+        selectAnnotation,
+      });
+
+      viewer.raiseEvent('canvas-click', {
+        eventSource: { viewport: viewer.viewport },
+        originalEvent: { pointerType },
+        position: new OpenSeadragon.Point(101, 101),
+        quick,
+      });
+
+      return selectAnnotation;
+    };
+
+    it('ignores a non-quick touch gesture (pinch/pan) over an annotation', () => {
+      expect(clickAnnotationWithGesture('touch', false)).not.toHaveBeenCalled();
+    });
+
+    it('ignores a non-quick pen gesture over an annotation', () => {
+      expect(clickAnnotationWithGesture('pen', false)).not.toHaveBeenCalled();
+    });
+
+    it('still selects on a quick touch tap over an annotation', () => {
+      expect(clickAnnotationWithGesture('touch', true)).toHaveBeenCalledWith(
+        'base',
+        'http://example.org/identifier/annotation/anno-line',
+      );
     });
   });
 
