@@ -70,12 +70,12 @@ describe('WindowViewSettings', () => {
     const menuItems = screen.queryAllByRole('menuitemradio');
     expect(menuItems.length).toBe(4);
     await user.click(menuItems[0]);
-    expect(setWindowViewType).toHaveBeenCalledWith('xyz', 'single');
+    expect(setWindowViewType).toHaveBeenCalledWith('single');
     await user.click(menuItems[1]);
-    expect(setWindowViewType).toHaveBeenCalledWith('xyz', 'book');
+    expect(setWindowViewType).toHaveBeenCalledWith('book');
     await user.click(menuItems[2]);
-    expect(setWindowViewType).toHaveBeenCalledWith('xyz', 'scroll');
+    expect(setWindowViewType).toHaveBeenCalledWith('scroll');
     await user.click(menuItems[3]);
-    expect(setWindowViewType).toHaveBeenCalledWith('xyz', 'gallery');
+    expect(setWindowViewType).toHaveBeenCalledWith('gallery');
   });
 });
