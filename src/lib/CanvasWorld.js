@@ -21,7 +21,10 @@ export default class CanvasWorld {
     return this.canvases.map((canvas) => canvas.id);
   }
 
-  /** */
+  /**
+   * Returns an array [{ canvas, x, y, width, height }]
+   * with one entry per input canvas, in world coordinates.
+   */
   get canvasDimensions() {
     if (this._canvasDimensions) {
       return this._canvasDimensions;
@@ -104,6 +107,17 @@ export default class CanvasWorld {
     const canvasDimensions = this.canvasDimensions.find((c) => c.canvas.id === canvasId);
 
     return [canvasDimensions.x, canvasDimensions.y, canvasDimensions.width, canvasDimensions.height];
+  }
+
+  /** */
+  canvasScale(canvasId) {
+    const canvasDimensions = this.canvasDimensions.find((c) => c.canvas.id === canvasId);
+    if (!canvasDimensions) return 1;
+
+    const canvasWidth = canvasDimensions.canvas.getWidth();
+    if (!canvasWidth || !canvasDimensions.width) return 1;
+
+    return canvasDimensions.width / canvasWidth;
   }
 
   /** */

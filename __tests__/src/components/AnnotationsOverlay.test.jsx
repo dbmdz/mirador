@@ -123,7 +123,9 @@ describe('AnnotationsOverlay', () => {
       const context2d = {
         restore: () => {},
         save: () => {},
+        scale: () => {},
         strokeRect,
+        translate: () => {},
       };
 
       OpenSeadragonCanvasOverlay.mockImplementation(function () {
@@ -132,6 +134,7 @@ describe('AnnotationsOverlay', () => {
           clear: vi.fn(),
           context2d,
           resize: vi.fn(),
+          scale: 0.05,
         };
       });
 
@@ -142,11 +145,6 @@ describe('AnnotationsOverlay', () => {
         palette: { annotations: palette },
         viewer: null,
       });
-
-      const getItemAt = vi
-        .spyOn(viewer.world, 'getItemAt')
-        .mockImplementation((index) => (index === 0 ? { viewportToImageZoom: vi.fn(() => 0.05) } : undefined));
-      vi.spyOn(viewer.viewport, 'getZoom').mockImplementation(() => 0.05);
 
       rerender(
         cloneElement(component, {
@@ -201,6 +199,49 @@ describe('AnnotationsOverlay', () => {
       });
 
       expect(selectAnnotation).toHaveBeenCalledWith('base', 'http://example.org/identifier/annotation/anno-line');
+    });
+
+    it('triggers a selectAnnotation for a clicked-on svgSelector annotation', () => {
+      const selectAnnotation = vi.fn();
+
+      // isAnnotationAtPoint's svgSelector branch hit-tests via
+      // context2d.isPointInPath, unlike the fragmentSelector branch used by
+      // the other onCanvasClick tests, which never touches osdCanvasOverlay.
+      OpenSeadragonCanvasOverlay.mockImplementation(function () {
+        return { context2d: { isPointInPath: () => true } };
+      });
+
+      const { viewer } = createWrapper({
+        annotations: [
+          new AnnotationList({
+            '@id': 'foo',
+            resources: [
+              {
+                '@id': 'http://example.org/identifier/annotation/anno-svg',
+                '@type': 'oa:Annotation',
+                motivation: 'sc:painting',
+                on: {
+                  full: 'http://iiif.io/api/presentation/2.0/example/fixtures/canvas/24/c1.json',
+                  selector: {
+                    item: {
+                      '@type': 'oa:SvgSelector',
+                      value: '<svg xmlns="http://www.w3.org/2000/svg"><rect x="90" y="90" width="300" height="40" /></svg>',
+                    },
+                  },
+                },
+              },
+            ],
+          }),
+        ],
+        selectAnnotation,
+      });
+
+      viewer.raiseEvent('canvas-click', {
+        eventSource: { viewport: viewer.viewport },
+        position: new OpenSeadragon.Point(101, 101),
+      });
+
+      expect(selectAnnotation).toHaveBeenCalledWith('base', 'http://example.org/identifier/annotation/anno-svg');
     });
 
     it('triggers a deselectAnnotation for an already-selected annotation', () => {

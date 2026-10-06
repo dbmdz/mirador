@@ -6,18 +6,23 @@ import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
 import OpenSeadragonCanvasOverlay from '../lib/OpenSeadragonCanvasOverlay';
 import CanvasWorld from '../lib/CanvasWorld';
-import CanvasAnnotationDisplay from '../lib/CanvasAnnotationDisplay';
-import { buildPath2D } from '../lib/svgShapesToPath';
+import { drawAnnotationsToContext } from '../lib/drawAnnotationsToContext';
+import { buildPath2D, svgShapeElements } from '../lib/svgShapesToPath';
 
 /** @private */
 function isAnnotationAtPoint(canvasWorld, osdCanvasOverlay, resource, canvas, point) {
   const [canvasX, canvasY] = canvasWorld.canvasToWorldCoordinates(canvas.id);
-  const relativeX = point.x - canvasX;
-  const relativeY = point.y - canvasY;
+  // point is already in OSD viewport/world units (see onCanvasClick's use of
+  // viewport.pointFromPixel), so only the world -> native-pixel conversion
+  // is needed here -- unlike CanvasAnnotationDisplay's drawing code, there's
+  // no separate screen-pixel step (overlayScale) left to undo.
+  const scale = canvasWorld.canvasScale(canvas.id);
+  const relativeX = (point.x - canvasX) / scale;
+  const relativeY = (point.y - canvasY) / scale;
 
   if (resource.svgSelector) {
     const context = osdCanvasOverlay.context2d;
-    const { svgPaths } = new CanvasAnnotationDisplay({ resource });
+    const svgPaths = svgShapeElements(resource);
     return [...svgPaths].some((path) => context.isPointInPath(buildPath2D(path), relativeX, relativeY));
   }
 
@@ -81,34 +86,15 @@ export function AnnotationsOverlay({
    */
   const annotationsToContext = useCallback(
     (renderedAnnotations, currentPalette) => {
-      const context = osdCanvasOverlay.context2d;
-      renderedAnnotations.forEach((annotation) => {
-        annotation.resources.forEach((resource) => {
-          const osdCanvasIndex = canvasWorld.canvases.findIndex((canvas) => canvas.id === resource.targetId);
-          if (osdCanvasIndex === -1) return;
-          const viewportCanvas = viewer.world.getItemAt(osdCanvasIndex);
-          if (!viewportCanvas) return;
-          const offset = canvasWorld.offsetByCanvas(resource.targetId);
-          const zoomRatio = viewportCanvas.viewportToImageZoom(viewer.viewport.getZoom(true));
-          const canvasAnnotationDisplay = new CanvasAnnotationDisplay({
-            hovered: hoveredAnnotationIds.includes(resource.id),
-            offset,
-            palette: {
-              ...currentPalette,
-              default: {
-                ...currentPalette.default,
-                ...(!highlightAllAnnotations && currentPalette.hidden),
-              },
-            },
-            resource,
-            selected: selectedAnnotationId === resource.id,
-            zoomRatio,
-          });
-          canvasAnnotationDisplay.toContext(context);
-        });
+      drawAnnotationsToContext(renderedAnnotations, currentPalette, {
+        canvasWorld,
+        highlightAllAnnotations,
+        hoveredAnnotationIds,
+        osdCanvasOverlay,
+        selectedAnnotationId,
       });
     },
-    [osdCanvasOverlay, viewer, canvasWorld, highlightAllAnnotations, hoveredAnnotationIds, selectedAnnotationId],
+    [osdCanvasOverlay, canvasWorld, highlightAllAnnotations, hoveredAnnotationIds, selectedAnnotationId],
   );
 
   const renderAnnotations = useCallback(() => {

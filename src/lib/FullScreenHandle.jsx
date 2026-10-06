@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useMemo } from 'react';
+import { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 
 /**
@@ -6,11 +6,12 @@ import PropTypes from 'prop-types';
  */
 export function useFullScreenHandle(containerId) {
   const [active, setActive] = useState(false);
+  const fullscreenRef = useRef();
 
   /**  */
-  const handleFullScreenChange = useCallback(() => {
-    setActive(document.fullscreenElement === document.getElementById(containerId));
-  }, [containerId]);
+  const handleFullScreenChange = () => {
+    setActive(document.fullscreenElement === fullscreenRef.current);
+  };
 
   useEffect(() => {
     document.addEventListener('fullscreenchange', handleFullScreenChange);
@@ -18,7 +19,7 @@ export function useFullScreenHandle(containerId) {
   }, [handleFullScreenChange]);
 
   /**  */
-  const requestFullscreen = useCallback(() => document.getElementById(containerId).requestFullscreen(), [containerId]);
+  const requestFullscreen = () => fullscreenRef.current.requestFullscreen();
 
   const enter = useCallback(() => {
     if (document.fullscreenElement) {
@@ -28,7 +29,7 @@ export function useFullScreenHandle(containerId) {
   }, [requestFullscreen]);
 
   const exit = useCallback(() => {
-    if (document.fullscreenElement !== document.getElementById(containerId)) return Promise.resolve();
+    if (document.fullscreenElement !== fullscreenRef.current) return Promise.resolve();
     return document.exitFullscreen();
   }, [containerId]);
 
@@ -37,8 +38,9 @@ export function useFullScreenHandle(containerId) {
       active,
       enter,
       exit,
+      fullscreenRef,
     }),
-    [active, enter, exit],
+    [active, enter, exit, fullscreenRef],
   );
 }
 
@@ -54,7 +56,18 @@ export const FullScreen = ({ handle, onChange = undefined, children = null, clas
     }
   }, [handle, handle.active, onChange]);
 
-  return <div className={fullScreenClasses.join(' ')}>{children}</div>;
+  const styles = handle.active
+    ? {
+        height: '100%',
+        width: '100%',
+      }
+    : {};
+
+  return (
+    <div ref={handle.fullscreenRef} className={fullScreenClasses.join(' ')} style={styles}>
+      {children}
+    </div>
+  );
 };
 
 FullScreen.propTypes = {

@@ -2,17 +2,20 @@
  * CanvasAnnotationDisplay - class used to display a SVG and fragment based
  * annotations.
  */
-import { buildPath2D } from '../lib/svgShapesToPath';
+import { buildPath2D, svgShapeElements } from '../lib/svgShapesToPath';
 
 export default class CanvasAnnotationDisplay {
   /** */
-  constructor({ resource, palette, zoomRatio, offset, selected, hovered }) {
+  constructor({ resource, palette, canvasWorld, overlayScale, selected, hovered, zoomRatio, offset }) {
     this.resource = resource;
     this.palette = palette;
-    this.zoomRatio = zoomRatio;
-    this.offset = offset;
+    this.canvasWorld = canvasWorld;
     this.selected = selected;
     this.hovered = hovered;
+    this.overlayScale = overlayScale;
+    // these variables have to be kept for plugins
+    this.zoomRatio = zoomRatio;
+    this.offset = offset || this.canvasWorld.offsetByCanvas(this.resource.targetId);
   }
 
   /** */
@@ -28,6 +31,24 @@ export default class CanvasAnnotationDisplay {
   /** */
   get svgString() {
     return this.resource.svgSelector.value;
+  }
+
+  /**
+   * Two scale factors compose here: `overlayScale` (screen pixels per OSD
+   * viewport unit -- already applied to the context by
+   * OpenSeadragonCanvasOverlay before toContext() runs) and `scale`
+   * (native image pixels per CanvasWorld unit -- applied explicitly below
+   * via context.scale()). Both apply automatically to drawn geometry, but
+   * not to a plain lineWidth number -- lineWidthScale pre-divides that
+   * back out so strokes render at their native width.
+   */
+  get lineWidthScale() {
+    return this.scale * this.overlayScale;
+  }
+
+  /** Native image pixels -> CanvasWorld world units, for this canvas. */
+  get scale() {
+    return this.canvasWorld.canvasScale(this.resource.targetId);
   }
 
   parseOpacity(value) {
@@ -58,6 +79,7 @@ export default class CanvasAnnotationDisplay {
        */
       this.context.save();
       this.context.translate(this.offset.x, this.offset.y);
+      this.context.scale(this.scale, this.scale);
       const p = buildPath2D(element);
 
       // Setup styling from SVG -> Canvas
@@ -80,8 +102,8 @@ export default class CanvasAnnotationDisplay {
         }
       });
 
-      // Resize the stroke based off of the zoomRatio (currentZoom / maxZoom)
-      this.context.lineWidth /= this.zoomRatio;
+      // Resize the stroke based off of the canvasScale * overlayScale
+      this.context.lineWidth /= this.lineWidthScale;
 
       // Reset the color if it is selected or hovered on
       if (this.selected || this.hovered) {
@@ -110,8 +132,6 @@ export default class CanvasAnnotationDisplay {
   /** */
   fragmentContext() {
     const fragment = this.resource.fragmentSelector;
-    fragment[0] += this.offset.x;
-    fragment[1] += this.offset.y;
 
     let currentPalette;
     if (this.selected) {
@@ -128,11 +148,13 @@ export default class CanvasAnnotationDisplay {
     });
 
     if (currentPalette.globalAlpha === 0) return;
+    this.context.translate(this.offset.x, this.offset.y);
+    this.context.scale(this.scale, this.scale);
 
     if (currentPalette.fillStyle) {
       this.context.fillRect(...fragment);
     } else {
-      this.context.lineWidth = 1 / this.zoomRatio;
+      this.context.lineWidth = 1 / this.lineWidthScale;
       this.context.strokeRect(...fragment);
     }
 
@@ -141,8 +163,6 @@ export default class CanvasAnnotationDisplay {
 
   /** */
   get svgPaths() {
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(this.svgString, 'text/xml');
-    return Array.from(xmlDoc.querySelectorAll('circle, ellipse, rect, line, polygon, polyline, path'));
+    return svgShapeElements(this.resource);
   }
 }
