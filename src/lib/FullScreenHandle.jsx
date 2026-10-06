@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 /**
  * Used to request or exit fullscreen using the native Fullscreen API.
  */
-export function useFullScreenHandle(containerId) {
+export function useFullScreenHandle() {
   const [active, setActive] = useState(false);
   const fullscreenRef = useRef();
 
@@ -16,7 +16,7 @@ export function useFullScreenHandle(containerId) {
   useEffect(() => {
     document.addEventListener('fullscreenchange', handleFullScreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
-  }, [handleFullScreenChange]);
+  }, []);
 
   /**  */
   const requestFullscreen = () => fullscreenRef.current.requestFullscreen();
@@ -26,12 +26,12 @@ export function useFullScreenHandle(containerId) {
       return document.exitFullscreen().then(() => requestFullscreen());
     }
     return requestFullscreen();
-  }, [requestFullscreen]);
+  }, []);
 
   const exit = useCallback(() => {
     if (document.fullscreenElement !== fullscreenRef.current) return Promise.resolve();
     return document.exitFullscreen();
-  }, [containerId]);
+  }, []);
 
   return useMemo(
     () => ({

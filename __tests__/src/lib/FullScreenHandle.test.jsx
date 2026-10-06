@@ -4,7 +4,6 @@ import { useFullScreenHandle, FullScreen } from '../../../src/lib/FullScreenHand
 
 describe('FullScreenHandle', () => {
   describe('useFullScreenHandle', () => {
-    const containerId = 'mirador-instance';
     let requestFullscreen;
     let exitFullscreen;
     let element;
@@ -33,7 +32,7 @@ describe('FullScreenHandle', () => {
     });
 
     it('starts inactive', () => {
-      const { result } = renderHook(() => useFullScreenHandle(containerId));
+      const { result } = renderHook(() => useFullScreenHandle());
 
       expect(result.current.active).toBe(false);
     });
@@ -112,6 +111,7 @@ describe('FullScreenHandle', () => {
       // eslint-disable-next-line testing-library/no-node-access -- the wrapper div has no role/testid to query directly
       const wrapper = screen.getByText('content').parentElement;
       expect(wrapper).toHaveClass('fullscreen-enabled');
+      expect(wrapper).toHaveStyle({ height: '100%', width: '100%' });
     });
 
     it('attaches the handle ref to the wrapper element', () => {
